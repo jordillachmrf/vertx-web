@@ -264,6 +264,16 @@ public interface HttpRequest<T> {
   HttpRequest<T> setQueryParam(String paramName, String paramValue);
 
   /**
+   * Set a URI parameter to the request, expanded when the request URI is a {@link UriTemplate}.
+   *
+   * @param paramName  the param name
+   * @param paramValue the param value
+   * @return a reference to this, so the API can be used fluently
+   */
+  // @Fluent
+  // HttpRequest<T> setUriParam(String paramName, String paramValue);
+
+  /**
    * Set wether or not to follow the directs for the request.
    *
    * @param value true if redirections should be followed
