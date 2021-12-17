@@ -26,6 +26,7 @@ import io.vertx.core.http.impl.HttpClientImpl;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.UriTemplate;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.impl.predicate.PredicateInterceptor;
 import io.vertx.ext.web.codec.impl.BodyCodecImpl;
@@ -61,6 +62,12 @@ public class WebClientBase implements WebClientInternal {
 
   @Override
   public HttpRequest<Buffer> request(HttpMethod method, SocketAddress serverAddress, String requestURI) {
+    return new HttpRequestImpl<>(this, method, serverAddress, options.isSsl(), options.getDefaultPort(), options.getDefaultHost(),
+      requestURI, BodyCodecImpl.BUFFER, options);
+  }
+
+  @Override
+  public HttpRequest<Buffer> request(HttpMethod method, SocketAddress serverAddress, UriTemplate requestURI) {
     return new HttpRequestImpl<>(this, method, serverAddress, options.isSsl(), options.getDefaultPort(), options.getDefaultHost(),
       requestURI, BodyCodecImpl.BUFFER, options);
   }

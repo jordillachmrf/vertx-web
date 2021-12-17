@@ -4,7 +4,6 @@ import io.netty.handler.codec.http.multipart.HttpPostRequestEncoder;
 import io.vertx.core.*;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.AsyncFile;
-import io.vertx.core.file.OpenOptions;
 import io.vertx.core.http.*;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
@@ -217,23 +216,6 @@ public class WebClientTest extends WebClientTestBase {
     }, req -> assertEquals(method, req.method()));
   }
 
-  private void testRequest(Function<WebClient, HttpRequest<Buffer>> reqFactory, Consumer<HttpServerRequest> reqChecker) throws Exception {
-    waitFor(4);
-    server.requestHandler(req -> {
-      try {
-        reqChecker.accept(req);
-        complete();
-      } finally {
-        req.response().end();
-      }
-    });
-    startServer();
-    HttpRequest<Buffer> builder = reqFactory.apply(webClient);
-    builder.send(onSuccess(resp -> complete()));
-    builder.send(onSuccess(resp -> complete()));
-    await();
-  }
-
   @Test
   public void testPost() throws Exception {
     testRequestWithBody(HttpMethod.POST, false);
@@ -280,49 +262,6 @@ public class WebClientTest extends WebClientTestBase {
           fail(ar.cause());
         }
       });
-    await();
-  }
-
-  private void testRequestWithBody(HttpMethod method, boolean chunked) throws Exception {
-    String expected = TestUtils.randomAlphaString(1024 * 1024);
-    File f = File.createTempFile("vertx", ".data");
-    f.deleteOnExit();
-    Files.write(f.toPath(), expected.getBytes(StandardCharsets.UTF_8));
-    waitFor(2);
-    server.requestHandler(req -> req.bodyHandler(buff -> {
-      assertEquals(method, req.method());
-      assertEquals(Buffer.buffer(expected), buff);
-      complete();
-      req.response().end();
-    }));
-    startServer();
-    vertx.runOnContext(v -> {
-      AsyncFile asyncFile = vertx.fileSystem().openBlocking(f.getAbsolutePath(), new OpenOptions());
-
-      HttpRequest<Buffer> builder = null;
-
-      switch (method.name()) {
-        case "POST":
-          builder = webClient.post(DEFAULT_HTTP_PORT, DEFAULT_HTTP_HOST, "/somepath");
-          break;
-        case "PUT":
-          builder = webClient.put(DEFAULT_HTTP_PORT, DEFAULT_HTTP_HOST, "/somepath");
-          break;
-        case "PATCH":
-          builder = webClient.patch(DEFAULT_HTTP_PORT, DEFAULT_HTTP_HOST, "/somepath");
-          break;
-        default:
-          fail("Invalid HTTP method");
-      }
-
-      if (!chunked) {
-        builder = builder.putHeader("Content-Length", "" + expected.length());
-      }
-      builder.sendStream(asyncFile, onSuccess(resp -> {
-            assertEquals(200, resp.statusCode());
-            complete();
-          }));
-    });
     await();
   }
 

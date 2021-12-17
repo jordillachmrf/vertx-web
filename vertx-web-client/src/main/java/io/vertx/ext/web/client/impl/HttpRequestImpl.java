@@ -66,17 +66,17 @@ public class HttpRequestImpl<T> implements HttpRequest<T> {
   boolean multipartMixed = true;
   public List<ResponsePredicate> expectations;
 
-  HttpRequestImpl(WebClientInternal client, HttpMethod method, SocketAddress serverAddress, Boolean ssl, Integer port, String host, String uri, BodyCodec<T>
+  HttpRequestImpl(WebClientInternal client, HttpMethod method, SocketAddress serverAddress, Boolean ssl, Integer port, String host, Object uri, BodyCodec<T>
     codec, WebClientOptions options, ProxyOptions proxyOptions) {
     this(client, method, serverAddress, null, ssl, port, host, uri, codec, options, proxyOptions);
   }
 
-  HttpRequestImpl(WebClientInternal client, HttpMethod method, SocketAddress serverAddress, Boolean ssl, Integer port, String host, String uri, BodyCodec<T>
+  HttpRequestImpl(WebClientInternal client, HttpMethod method, SocketAddress serverAddress, Boolean ssl, Integer port, String host, Object uri, BodyCodec<T>
           codec, WebClientOptions options) {
     this(client, method, serverAddress, null, ssl, port, host, uri, codec, options, null);
   }
 
-  HttpRequestImpl(WebClientInternal client, HttpMethod method, SocketAddress serverAddress, String protocol, Boolean ssl, Integer port, String host, String
+  HttpRequestImpl(WebClientInternal client, HttpMethod method, SocketAddress serverAddress, String protocol, Boolean ssl, Integer port, String host, Object
           uri, BodyCodec<T> codec, WebClientOptions options, ProxyOptions proxyOptions) {
     this.client = client;
     this.method = method;
@@ -320,7 +320,7 @@ public class HttpRequestImpl<T> implements HttpRequest<T> {
     if (templateParams == null) {
       templateParams = MultiMap.caseInsensitiveMultiMap();
     }
-    return queryParams;
+    return templateParams;
   }
 
   @Override

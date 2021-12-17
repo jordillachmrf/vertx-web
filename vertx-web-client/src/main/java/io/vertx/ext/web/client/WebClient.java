@@ -147,6 +147,16 @@ public interface WebClient {
   }
 
   /**
+   * Create an HTTP request to send to the server at the default host and port.
+   * @param method  the HTTP method
+   * @param requestURI  the request URI
+   * @return  an HTTP client request object
+   */
+  default HttpRequest<Buffer> request(HttpMethod method, UriTemplate requestURI) {
+    return request(method, null, requestURI);
+  }
+
+  /**
    * Like {@link #request(HttpMethod, String)} using the {@code serverAddress} parameter to connect to the
    * server instead of the default port and default host.
    * <p>
@@ -155,6 +165,16 @@ public interface WebClient {
    * Use {@link SocketAddress#domainSocketAddress(String)} to connect to a unix domain socket server.
    */
   HttpRequest<Buffer> request(HttpMethod method, SocketAddress serverAddress, String requestURI);
+
+  /**
+   * Like {@link #request(HttpMethod, String)} using the {@code serverAddress} parameter to connect to the
+   * server instead of the default port and default host.
+   * <p>
+   * The request host header will still be created from the default port and default host.
+   * <p>
+   * Use {@link SocketAddress#domainSocketAddress(String)} to connect to a unix domain socket server.
+   */
+  HttpRequest<Buffer> request(HttpMethod method, SocketAddress serverAddress, UriTemplate requestURI);
 
   /**
    * Create an HTTP request to send to the server at the specified host and port.
