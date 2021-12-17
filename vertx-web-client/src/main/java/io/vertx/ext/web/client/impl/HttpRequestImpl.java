@@ -16,6 +16,7 @@
 package io.vertx.ext.web.client.impl;
 
 import io.netty.handler.codec.http.QueryStringDecoder;
+import io.netty.handler.codec.http.QueryStringEncoder;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
@@ -30,6 +31,7 @@ import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.auth.authentication.Credentials;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.UriTemplate;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.codec.BodyCodec;
@@ -48,13 +50,14 @@ public class HttpRequestImpl<T> implements HttpRequest<T> {
   final WebClientOptions options;
   ProxyOptions proxyOptions;
   SocketAddress serverAddress;
-  MultiMap params;
+  MultiMap queryParams;
+  MultiMap templateParams;
   HttpMethod method;
   String protocol;
   private Integer port;
   private String host;
   String virtualHost;
-  String uri;
+  Object uri;
   MultiMap headers;
   long timeout = -1;
   BodyCodec<T> codec;
@@ -106,7 +109,7 @@ public class HttpRequestImpl<T> implements HttpRequest<T> {
     this.timeout = other.timeout;
     this.uri = other.uri;
     this.headers = other.headers != null ? HttpHeaders.headers().addAll(other.headers) : HttpHeaders.headers();
-    this.params = other.params != null ? MultiMap.caseInsensitiveMultiMap().addAll(other.params) : null;
+    this.queryParams = other.queryParams != null ? MultiMap.caseInsensitiveMultiMap().addAll(other.queryParams) : null;
     this.codec = other.codec;
     this.followRedirects = other.followRedirects;
     this.ssl = other.ssl;
@@ -163,13 +166,27 @@ public class HttpRequestImpl<T> implements HttpRequest<T> {
 
   @Override
   public HttpRequest<T> uri(String value) {
-    params = null;
+    queryParams = null;
     uri = value;
     return this;
   }
 
   public String uri() {
-    return uri;
+    return uri.toString();
+  }
+
+  public String computeURI() {
+    if (uri instanceof UriTemplate) {
+      return ((UriTemplate)uri).expand(templateParams);
+    } else {
+      String uri = (String) this.uri;
+      if (queryParams != null && queryParams.size() > 0) {
+        QueryStringEncoder enc = new QueryStringEncoder(uri);
+        queryParams.forEach(param -> enc.addParam(param.getKey(), param.getValue()));
+        uri = enc.toString();
+      }
+      return uri;
+    }
   }
 
   @Override
@@ -240,6 +257,18 @@ public class HttpRequestImpl<T> implements HttpRequest<T> {
   }
 
   @Override
+  public HttpRequest<T> addTemplateParam(String paramName, String paramValue) {
+    templateParams().add(paramName, paramValue);
+    return this;
+  }
+
+  @Override
+  public HttpRequest<T> setTemplateParam(String paramName, String paramValue) {
+    templateParams().set(paramName, paramValue);
+    return this;
+  }
+
+  @Override
   public HttpRequest<T> followRedirects(boolean value) {
     followRedirects = value;
     return this;
@@ -266,18 +295,32 @@ public class HttpRequestImpl<T> implements HttpRequest<T> {
 
   @Override
   public MultiMap queryParams() {
-    if (params == null) {
-      params = MultiMap.caseInsensitiveMultiMap();
+    if (!(uri instanceof String)) {
+      throw new IllegalStateException();
     }
-    if (params.isEmpty()) {
-      int idx = uri.indexOf('?');
+    if (queryParams == null) {
+      queryParams = MultiMap.caseInsensitiveMultiMap();
+    }
+    if (queryParams.isEmpty()) {
+      int idx = ((String)uri).indexOf('?');
       if (idx >= 0) {
-        QueryStringDecoder dec = new QueryStringDecoder(uri);
-        dec.parameters().forEach((name, value) -> params.add(name, value));
-        uri = uri.substring(0, idx);
+        QueryStringDecoder dec = new QueryStringDecoder((String)uri);
+        dec.parameters().forEach((name, value) -> queryParams.add(name, value));
+        uri = ((String)uri).substring(0, idx);
       }
     }
-    return params;
+    return queryParams;
+  }
+
+  @Override
+  public MultiMap templateParams() {
+    if (!(uri instanceof UriTemplate)) {
+      throw new IllegalStateException();
+    }
+    if (templateParams == null) {
+      templateParams = MultiMap.caseInsensitiveMultiMap();
+    }
+    return queryParams;
   }
 
   @Override

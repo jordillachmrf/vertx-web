@@ -402,14 +402,7 @@ public class HttpContext<T> {
 
   private void handlePrepareRequest() {
     context = client.getVertx().getOrCreateContext();
-    String requestURI;
-    if (request.params != null && request.params.size() > 0) {
-      QueryStringEncoder enc = new QueryStringEncoder(request.uri);
-      request.params.forEach(param -> enc.addParam(param.getKey(), param.getValue()));
-      requestURI = enc.toString();
-    } else {
-      requestURI = request.uri;
-    }
+    String requestURI = request.computeURI();
     int port = request.port();
     String host = request.host();
     RequestOptions options = new RequestOptions();

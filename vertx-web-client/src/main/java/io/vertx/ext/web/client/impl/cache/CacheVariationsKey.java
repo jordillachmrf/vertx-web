@@ -15,9 +15,13 @@
  */
 package io.vertx.ext.web.client.impl.cache;
 
+import io.netty.handler.codec.http.QueryStringDecoder;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.impl.HttpRequestImpl;
+
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -33,10 +37,12 @@ class CacheVariationsKey {
 
   CacheVariationsKey(HttpRequest<?> request) {
     HttpRequestImpl<?> impl = (HttpRequestImpl<?>) request;
+    String requestURI = impl.computeURI();
+    QueryStringDecoder dec = new QueryStringDecoder(requestURI);
     this.host = impl.host();
     this.port = impl.port();
-    this.path = impl.uri();
-    this.queryString = queryString(impl.queryParams());
+    this.path = dec.path();
+    this.queryString = queryString(dec.parameters());
   }
 
   @Override
@@ -64,8 +70,10 @@ class CacheVariationsKey {
     return Objects.hash(host, port, path, queryString);
   }
 
-  private String queryString(MultiMap queryParams) {
-    return queryParams.entries()
+  private String queryString(Map<String, List<String>> queryParams) {
+    MultiMap mm = MultiMap.caseInsensitiveMultiMap();
+    queryParams.forEach(mm::set);
+    return mm.entries()
       .stream()
       .sorted((a, b) -> a.getKey().compareToIgnoreCase(b.getKey()))
       .map(e -> e.getKey() + "=" + e.getValue())

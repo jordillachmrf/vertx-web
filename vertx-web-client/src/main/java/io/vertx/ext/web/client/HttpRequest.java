@@ -264,14 +264,24 @@ public interface HttpRequest<T> {
   HttpRequest<T> setQueryParam(String paramName, String paramValue);
 
   /**
-   * Set a URI parameter to the request, expanded when the request URI is a {@link UriTemplate}.
+   * Add a request URI template parameter to the request, expanded when the request URI is a {@link UriTemplate}.
    *
    * @param paramName  the param name
    * @param paramValue the param value
    * @return a reference to this, so the API can be used fluently
    */
-  // @Fluent
-  // HttpRequest<T> setUriParam(String paramName, String paramValue);
+  @Fluent
+  HttpRequest<T> addTemplateParam(String paramName, String paramValue);
+
+  /**
+   * Set a request URI template parameter to the request, expanded when the request URI is a {@link UriTemplate}.
+   *
+   * @param paramName  the param name
+   * @param paramValue the param value
+   * @return a reference to this, so the API can be used fluently
+   */
+  @Fluent
+  HttpRequest<T> setTemplateParam(String paramName, String paramValue);
 
   /**
    * Set wether or not to follow the directs for the request.
@@ -324,6 +334,13 @@ public interface HttpRequest<T> {
    * @return the current query parameters
    */
   MultiMap queryParams();
+
+  /**
+   * Return the current request URI template parameters.
+   *
+   * @return the current request URI template parameters
+   */
+  MultiMap templateParams();
 
   /**
    * Copy this request

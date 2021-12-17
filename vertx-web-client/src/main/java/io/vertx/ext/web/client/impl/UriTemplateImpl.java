@@ -12,6 +12,7 @@ package io.vertx.ext.web.client.impl;
 
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
+import io.vertx.core.MultiMap;
 import io.vertx.ext.web.client.UriTemplate;
 
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class UriTemplateImpl implements UriTemplate {
 
     SIMPLE_STRING_EXPANSION() {
       @Override
-      void expand(List<Varspec> variableList, Map<String, String> variables, StringBuilder sb) {
+      void expand(List<Varspec> variableList, MultiMap variables, StringBuilder sb) {
         boolean first = true;
         for (Varspec variable : variableList) {
           String value = variables.get(variable.varname);
@@ -65,7 +66,7 @@ public class UriTemplateImpl implements UriTemplate {
       this.cps = cps;
     }
 
-    void expand(List<Varspec> variableList, Map<String, String> variables, StringBuilder sb) {
+    void expand(List<Varspec> variableList, MultiMap variables, StringBuilder sb) {
       throw new UnsupportedOperationException();
     }
 
@@ -106,7 +107,7 @@ public class UriTemplateImpl implements UriTemplate {
   }
 
   @Override
-  public String expand(Map<String, String> variables) {
+  public String expand(MultiMap variables) {
     StringBuilder sb = new StringBuilder();
     terms.forEach(term -> {
       if (term instanceof Literals) {

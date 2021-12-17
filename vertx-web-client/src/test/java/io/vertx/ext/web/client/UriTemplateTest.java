@@ -1,5 +1,6 @@
 package io.vertx.ext.web.client;
 
+import io.vertx.core.MultiMap;
 import io.vertx.ext.web.client.impl.UriTemplateImpl;
 import org.junit.Test;
 
@@ -87,10 +88,10 @@ public class UriTemplateTest {
 
   @Test
   public void testExpandSimpleString() {
-    Map<String, String> variables = new HashMap<>();
-    variables.put("var1", "val1");
-    variables.put("var2", "val2");
-    variables.put("var3", "val3");
+    MultiMap variables = MultiMap.caseInsensitiveMultiMap();
+    variables.set("var1", "val1");
+    variables.set("var2", "val2");
+    variables.set("var3", "val3");
     assertEquals("prefixsuffix", UriTemplate.of("prefix{var}suffix").expand(variables));
     assertEquals("prefixval1suffix", UriTemplate.of("prefix{var1}suffix").expand(variables));
     assertEquals("prefixval1,val2suffix", UriTemplate.of("prefix{var1,var2}suffix").expand(variables));

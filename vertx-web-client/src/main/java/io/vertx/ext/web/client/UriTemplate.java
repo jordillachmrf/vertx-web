@@ -11,6 +11,7 @@
 package io.vertx.ext.web.client;
 
 import io.vertx.codegen.annotations.VertxGen;
+import io.vertx.core.MultiMap;
 import io.vertx.ext.web.client.impl.UriTemplateImpl;
 
 import java.util.Map;
@@ -25,6 +26,6 @@ public interface UriTemplate {
     return new UriTemplateImpl.Parser().parseURITemplate(uri);
   }
 
-  String expand(Map<String, String> variables);
+  String expand(MultiMap variables);
 
 }

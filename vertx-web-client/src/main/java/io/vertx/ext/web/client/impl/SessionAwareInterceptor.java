@@ -59,7 +59,7 @@ public class SessionAwareInterceptor implements Handler<HttpContext<?>> {
       domain = request.host();
     }
 
-    Iterable<Cookie> cookies = parentClient.cookieStore().get(request.ssl, domain, request.uri);
+    Iterable<Cookie> cookies = parentClient.cookieStore().get(request.ssl, domain, request.computeURI());
     String encodedCookies = ClientCookieEncoder.STRICT.encode(cookies);
     if (encodedCookies != null) {
       headers.add(HttpHeaders.COOKIE, encodedCookies);
