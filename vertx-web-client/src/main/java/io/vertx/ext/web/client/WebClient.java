@@ -98,10 +98,12 @@ public interface WebClient {
    * @param method  the HTTP method
    * @param port  the port
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> request(HttpMethod method, int port, String host, String requestURI);
+  default HttpRequest<Buffer> request(HttpMethod method, int port, String host, String requestURI) {
+    return request(method, null, port, host, requestURI);
+  }
 
   /**
    * Like {@link #request(HttpMethod, int, String, String)} using the {@code serverAddress} parameter to connect to the
@@ -117,10 +119,12 @@ public interface WebClient {
    * Create an HTTP request to send to the server at the specified host and default port.
    * @param method  the HTTP method
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> request(HttpMethod method, String host, String requestURI);
+  default HttpRequest<Buffer> request(HttpMethod method, String host, String requestURI) {
+    return request(method, null, host, requestURI);
+  }
 
   /**
    * Like {@link #request(HttpMethod, String, String)} using the {@code serverAddress} parameter to connect to the
@@ -135,10 +139,12 @@ public interface WebClient {
   /**
    * Create an HTTP request to send to the server at the default host and port.
    * @param method  the HTTP method
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> request(HttpMethod method, String requestURI);
+  default HttpRequest<Buffer> request(HttpMethod method, String requestURI) {
+    return request(method, (SocketAddress) null, requestURI);
+  }
 
   /**
    * Like {@link #request(HttpMethod, String)} using the {@code serverAddress} parameter to connect to the
@@ -156,7 +162,9 @@ public interface WebClient {
    * @param options  the request options
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> request(HttpMethod method, RequestOptions options);
+  default HttpRequest<Buffer> request(HttpMethod method, RequestOptions options) {
+    return request(method, null, options);
+  }
 
   /**
    * Like {@link #request(HttpMethod, RequestOptions)} using the {@code serverAddress} parameter to connect to the
@@ -174,7 +182,9 @@ public interface WebClient {
    * @param absoluteURI  the absolute URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> requestAbs(HttpMethod method, String absoluteURI);
+  default HttpRequest<Buffer> requestAbs(HttpMethod method, String absoluteURI) {
+    return requestAbs(method, null, absoluteURI);
+  }
 
   /**
    * Like {@link #requestAbs(HttpMethod, String)} using the {@code serverAddress} parameter to connect to the
@@ -188,27 +198,33 @@ public interface WebClient {
 
   /**
    * Create an HTTP GET request to send to the server at the default host and port.
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> get(String requestURI);
+  default HttpRequest<Buffer> get(String requestURI) {
+    return request(HttpMethod.GET, requestURI);
+  }
 
   /**
    * Create an HTTP GET request to send to the server at the specified host and port.
    * @param port  the port
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> get(int port, String host, String requestURI);
+  default HttpRequest<Buffer> get(int port, String host, String requestURI) {
+    return request(HttpMethod.GET, port, host, requestURI);
+  }
 
   /**
    * Create an HTTP GET request to send to the server at the specified host and default port.
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> get(String host, String requestURI);
+  default HttpRequest<Buffer> get(String host, String requestURI) {
+    return request(HttpMethod.GET, host, requestURI);
+  }
 
   /**
    * Create an HTTP GET request to send to the server using an absolute URI, specifying a response handler to receive
@@ -216,31 +232,39 @@ public interface WebClient {
    * @param absoluteURI  the absolute URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> getAbs(String absoluteURI);
+  default HttpRequest<Buffer> getAbs(String absoluteURI) {
+    return requestAbs(HttpMethod.GET, absoluteURI);
+  }
 
   /**
    * Create an HTTP POST request to send to the server at the default host and port.
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> post(String requestURI);
+  default HttpRequest<Buffer> post(String requestURI) {
+    return request(HttpMethod.POST, requestURI);
+  }
 
   /**
    * Create an HTTP POST request to send to the server at the specified host and port.
    * @param port  the port
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> post(int port, String host, String requestURI);
+  default HttpRequest<Buffer> post(int port, String host, String requestURI) {
+    return request(HttpMethod.POST, port, host, requestURI);
+  }
 
   /**
    * Create an HTTP POST request to send to the server at the specified host and default port.
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> post(String host, String requestURI);
+  default HttpRequest<Buffer> post(String host, String requestURI) {
+    return request(HttpMethod.POST, host, requestURI);
+  }
 
   /**
    * Create an HTTP POST request to send to the server using an absolute URI, specifying a response handler to receive
@@ -248,31 +272,39 @@ public interface WebClient {
    * @param absoluteURI  the absolute URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> postAbs(String absoluteURI);
+  default HttpRequest<Buffer> postAbs(String absoluteURI) {
+    return requestAbs(HttpMethod.POST, absoluteURI);
+  }
 
   /**
    * Create an HTTP PUT request to send to the server at the default host and port.
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> put(String requestURI);
+  default HttpRequest<Buffer> put(String requestURI) {
+    return request(HttpMethod.PUT, requestURI);
+  }
 
   /**
    * Create an HTTP PUT request to send to the server at the specified host and port.
    * @param port  the port
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> put(int port, String host, String requestURI);
+  default HttpRequest<Buffer> put(int port, String host, String requestURI) {
+    return request(HttpMethod.PUT, port, host, requestURI);
+  }
 
   /**
    * Create an HTTP PUT request to send to the server at the specified host and default port.
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> put(String host, String requestURI);
+  default HttpRequest<Buffer> put(String host, String requestURI) {
+    return request(HttpMethod.PUT, host, requestURI);
+  }
 
   /**
    * Create an HTTP PUT request to send to the server using an absolute URI, specifying a response handler to receive
@@ -280,31 +312,39 @@ public interface WebClient {
    * @param absoluteURI  the absolute URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> putAbs(String absoluteURI);
+  default HttpRequest<Buffer> putAbs(String absoluteURI) {
+    return requestAbs(HttpMethod.PUT, absoluteURI);
+  }
 
   /**
    * Create an HTTP DELETE request to send to the server at the default host and port.
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> delete(String requestURI);
+  default HttpRequest<Buffer> delete(String requestURI) {
+    return request(HttpMethod.DELETE, requestURI);
+  }
 
   /**
    * Create an HTTP DELETE request to send to the server at the specified host and port.
    * @param port  the port
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> delete(int port, String host, String requestURI);
+  default HttpRequest<Buffer> delete(int port, String host, String requestURI) {
+    return request(HttpMethod.DELETE, port, host, requestURI);
+  }
 
   /**
    * Create an HTTP DELETE request to send to the server at the specified host and default port.
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> delete(String host, String requestURI);
+  default HttpRequest<Buffer> delete(String host, String requestURI) {
+    return request(HttpMethod.DELETE, host, requestURI);
+  }
 
   /**
    * Create an HTTP DELETE request to send to the server using an absolute URI, specifying a response handler to receive
@@ -312,31 +352,39 @@ public interface WebClient {
    * @param absoluteURI  the absolute URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> deleteAbs(String absoluteURI);
+  default HttpRequest<Buffer> deleteAbs(String absoluteURI) {
+    return requestAbs(HttpMethod.DELETE, absoluteURI);
+  }
 
   /**
    * Create an HTTP PATCH request to send to the server at the default host and port.
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> patch(String requestURI);
+  default HttpRequest<Buffer> patch(String requestURI) {
+    return request(HttpMethod.PATCH, requestURI);
+  }
 
   /**
    * Create an HTTP PATCH request to send to the server at the specified host and port.
    * @param port  the port
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> patch(int port, String host, String requestURI);
+  default HttpRequest<Buffer> patch(int port, String host, String requestURI) {
+    return request(HttpMethod.PATCH, port, host, requestURI);
+  }
 
   /**
    * Create an HTTP PATCH request to send to the server at the specified host and default port.
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> patch(String host, String requestURI);
+  default HttpRequest<Buffer> patch(String host, String requestURI) {
+    return request(HttpMethod.PATCH, host, requestURI);
+  }
 
   /**
    * Create an HTTP PATCH request to send to the server using an absolute URI, specifying a response handler to receive
@@ -344,31 +392,39 @@ public interface WebClient {
    * @param absoluteURI  the absolute URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> patchAbs(String absoluteURI);
+  default HttpRequest<Buffer> patchAbs(String absoluteURI) {
+    return requestAbs(HttpMethod.PATCH, absoluteURI);
+  }
 
   /**
    * Create an HTTP HEAD request to send to the server at the default host and port.
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> head(String requestURI);
+  default HttpRequest<Buffer> head(String requestURI) {
+    return request(HttpMethod.HEAD, requestURI);
+  }
 
   /**
    * Create an HTTP HEAD request to send to the server at the specified host and port.
    * @param port  the port
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> head(int port, String host, String requestURI);
+  default HttpRequest<Buffer> head(int port, String host, String requestURI) {
+    return request(HttpMethod.HEAD, port, host, requestURI);
+  }
 
   /**
    * Create an HTTP HEAD request to send to the server at the specified host and default port.
    * @param host  the host
-   * @param requestURI  the relative URI
+   * @param requestURI  the request URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> head(String host, String requestURI);
+  default HttpRequest<Buffer> head(String host, String requestURI) {
+    return request(HttpMethod.HEAD, host, requestURI);
+  }
 
   /**
    * Create an HTTP HEAD request to send to the server using an absolute URI, specifying a response handler to receive
@@ -376,7 +432,9 @@ public interface WebClient {
    * @param absoluteURI  the absolute URI
    * @return  an HTTP client request object
    */
-  HttpRequest<Buffer> headAbs(String absoluteURI);
+  default HttpRequest<Buffer> headAbs(String absoluteURI) {
+    return requestAbs(HttpMethod.HEAD, absoluteURI);
+  }
 
   /**
    * Close the client. Closing will close down any pooled connections.

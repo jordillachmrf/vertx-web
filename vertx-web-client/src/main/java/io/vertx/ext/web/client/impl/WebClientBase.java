@@ -60,138 +60,9 @@ public class WebClientBase implements WebClientInternal {
   }
 
   @Override
-  public HttpRequest<Buffer> get(int port, String host, String requestURI) {
-    return request(HttpMethod.GET, port, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> get(String requestURI) {
-    return request(HttpMethod.GET, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> get(String host, String requestURI) {
-    return request(HttpMethod.GET, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> getAbs(String absoluteURI) {
-    return requestAbs(HttpMethod.GET, absoluteURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> post(String requestURI) {
-    return request(HttpMethod.POST, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> post(String host, String requestURI) {
-    return request(HttpMethod.POST, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> post(int port, String host, String requestURI) {
-    return request(HttpMethod.POST, port, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> put(String requestURI) {
-    return request(HttpMethod.PUT, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> put(String host, String requestURI) {
-    return request(HttpMethod.PUT, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> put(int port, String host, String requestURI) {
-    return request(HttpMethod.PUT, port, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> delete(String host, String requestURI) {
-    return request(HttpMethod.DELETE, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> delete(String requestURI) {
-    return request(HttpMethod.DELETE, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> delete(int port, String host, String requestURI) {
-    return request(HttpMethod.DELETE, port, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> patch(String requestURI) {
-    return request(HttpMethod.PATCH, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> patch(String host, String requestURI) {
-    return request(HttpMethod.PATCH, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> patch(int port, String host, String requestURI) {
-    return request(HttpMethod.PATCH, port, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> head(String requestURI) {
-    return request(HttpMethod.HEAD, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> head(String host, String requestURI) {
-    return request(HttpMethod.HEAD, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> head(int port, String host, String requestURI) {
-    return request(HttpMethod.HEAD, port, host, requestURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> postAbs(String absoluteURI) {
-    return requestAbs(HttpMethod.POST, absoluteURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> putAbs(String absoluteURI) {
-    return requestAbs(HttpMethod.PUT, absoluteURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> deleteAbs(String absoluteURI) {
-    return requestAbs(HttpMethod.DELETE, absoluteURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> patchAbs(String absoluteURI) {
-    return requestAbs(HttpMethod.PATCH, absoluteURI);
-  }
-
-  @Override
-  public HttpRequest<Buffer> headAbs(String absoluteURI) {
-    return requestAbs(HttpMethod.HEAD, absoluteURI);
-  }
-
-  public HttpRequest<Buffer> request(HttpMethod method, String requestURI) {
-    return request(method, (SocketAddress) null, requestURI);
-  }
-
-  @Override
   public HttpRequest<Buffer> request(HttpMethod method, SocketAddress serverAddress, String requestURI) {
     return new HttpRequestImpl<>(this, method, serverAddress, options.isSsl(), options.getDefaultPort(), options.getDefaultHost(),
       requestURI, BodyCodecImpl.BUFFER, options);
-  }
-
-  @Override
-  public HttpRequest<Buffer> request(HttpMethod method, RequestOptions requestOptions) {
-    return request(method, null, requestOptions);
   }
 
   @Override
@@ -201,27 +72,14 @@ public class WebClientBase implements WebClientInternal {
       return requestOptions.getHeaders() == null ? request : request.putHeaders(requestOptions.getHeaders());
   }
 
-  public HttpRequest<Buffer> request(HttpMethod method, String host, String requestURI) {
-    return request(method, null, host, requestURI);
-  }
-
   @Override
   public HttpRequest<Buffer> request(HttpMethod method, SocketAddress serverAddress, String host, String requestURI) {
     return new HttpRequestImpl<>(this, method, serverAddress, options.isSsl(), options.getDefaultPort(), host, requestURI, BodyCodecImpl.BUFFER, options);
   }
 
-  public HttpRequest<Buffer> request(HttpMethod method, int port, String host, String requestURI) {
-    return request(method, null, port, host, requestURI);
-  }
-
   @Override
   public HttpRequest<Buffer> request(HttpMethod method, SocketAddress serverAddress, int port, String host, String requestURI) {
     return new HttpRequestImpl<>(this, method, serverAddress, options.isSsl(), port, host, requestURI, BodyCodecImpl.BUFFER, options);
-  }
-
-  @Override
-  public HttpRequest<Buffer> requestAbs(HttpMethod method, String surl) {
-    return requestAbs(method, null, surl);
   }
 
   @Override
