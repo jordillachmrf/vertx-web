@@ -26,15 +26,17 @@ public interface Variables {
   }
 
   @Fluent
-  Variables set(String name, String value);
+  Variables set(String key, String value);
 
   @Fluent
-  Variables set(String name, List<String> values);
+  Variables set(String key, List<String> values);
 
   @Fluent
-  Variables set(String name, Map<String, String> entries);
+  Variables set(String key, Map<String, String> entries);
 
   Set<String> keys();
+
+  Object get(String key);
 
   String getValue(String key);
 

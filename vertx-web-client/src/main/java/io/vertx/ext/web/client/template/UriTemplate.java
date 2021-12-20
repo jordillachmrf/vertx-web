@@ -24,6 +24,6 @@ public interface UriTemplate {
     return new UriTemplateImpl.Parser().parseURITemplate(uri);
   }
 
-  String expand(MultiMap variables);
+  String expand(Variables variables);
 
 }

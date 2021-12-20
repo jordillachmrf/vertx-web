@@ -14,10 +14,12 @@ import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.client.template.UriTemplate;
+import io.vertx.ext.web.client.template.Variables;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 public class UriTemplateImpl implements UriTemplate {
@@ -30,25 +32,7 @@ public class UriTemplateImpl implements UriTemplate {
 
   public enum Operator {
 
-    SIMPLE_STRING_EXPANSION() {
-      private final Predicate<Character> ALLOWED_CHARS = Parser::isUnreserved;
-      @Override
-      void expand(List<Varspec> variableList, MultiMap variables, StringBuilder sb) {
-        boolean first = true;
-        for (Varspec variable : variableList) {
-          String value = variables.get(variable.varname);
-          if (value != null) {
-            if (first) {
-              first = false;
-            } else {
-              sb.append(',');
-            }
-            encodeString(value, ALLOWED_CHARS, sb);
-          }
-        }
-      }
-    },
-
+    SIMPLE_STRING_EXPANSION(),
     RESERVED_EXPANSION('+'),
     LABEL_EXPANSION('.'),
     PATH_SEGMENT_EXPANSION('/'),
@@ -62,14 +46,55 @@ public class UriTemplateImpl implements UriTemplate {
 
     ;
 
+    final Predicate<Character> allowedChars = Parser::isUnreserved; // SIMPLE
     final int[] cps;
 
     Operator(int... cps) {
       this.cps = cps;
     }
 
-    void expand(List<Varspec> variableList, MultiMap variables, StringBuilder sb) {
-      throw new UnsupportedOperationException();
+    void expand(List<Varspec> variableList, Variables variables, StringBuilder sb) {
+      if (this != SIMPLE_STRING_EXPANSION) {
+        throw new UnsupportedOperationException();
+      }
+      boolean first = true;
+      for (Varspec variable : variableList) {
+        Object o = variables.get(variable.varname);
+        if (o == null) {
+          // Continue
+        } else if (o instanceof String) {
+          if (first) {
+            first = false;
+          } else {
+            sb.append(',');
+          }
+          encodeString((String) o, allowedChars, sb);
+        } else if (o instanceof List) {
+          List<String> list = (List<String>) o;
+          for (String value : list) {
+            if (first) {
+              first = false;
+            } else {
+              sb.append(',');
+            }
+            encodeString(value, allowedChars, sb);
+          }
+        } else if (o instanceof Map) {
+          Map<String, String> map = (Map<String, String>) o;
+          for (Map.Entry<String, String> entry : map.entrySet()) {
+            if (first) {
+              first = false;
+            } else {
+              sb.append(',');
+            }
+            encodeString(entry.getKey(), allowedChars, sb);
+            sb.append(variable.exploded ? '=' : ',');
+            encodeString(entry.getValue(), allowedChars, sb);
+          }
+        } else {
+          throw new UnsupportedOperationException();
+        }
+      }
     }
 
   }
@@ -103,13 +128,15 @@ public class UriTemplateImpl implements UriTemplate {
 
   public static final class Varspec {
     private final String varname;
-    private Varspec(String varname) {
+    private final boolean exploded;
+    private Varspec(String varname, boolean exploded) {
       this.varname = varname;
+      this.exploded = exploded;
     }
   }
 
   @Override
-  public String expand(MultiMap variables) {
+  public String expand(Variables variables) {
     StringBuilder sb = new StringBuilder();
     terms.forEach(term -> {
       if (term instanceof Literals) {
@@ -280,7 +307,7 @@ public class UriTemplateImpl implements UriTemplate {
     }
 
     private static boolean isOperator(int cp) {
-      return isOpLevel2(cp) || isOpLevel2(3) || isOpReserve(cp);
+      return isOpLevel2(cp) || isOpLevel3(cp) || isOpReserve(cp);
     }
 
     private static boolean isOpLevel2(int cp) {
@@ -312,7 +339,7 @@ public class UriTemplateImpl implements UriTemplate {
         String varname = s.substring(pos, idx);
         pos = parseModifierLevel4(s, idx);
         if (expression != null) {
-          expression.value.add(new Varspec(varname));
+          expression.value.add(new Varspec(varname, exploded));
         }
       }
       return pos;
@@ -346,11 +373,15 @@ public class UriTemplateImpl implements UriTemplate {
       return pos;
     }
 
-    public static int parseModifierLevel4(String s, int pos) {
+    private boolean exploded;
+
+    public int parseModifierLevel4(String s, int pos) {
+      exploded = false;
       int idx = parsePrefix(s, pos);
       if (idx > pos) {
         pos = idx;
       } else if (pos < s.length() && isExplode(s.charAt(pos))) {
+        exploded = true;
         pos++;
       }
       return pos;

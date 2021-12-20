@@ -34,6 +34,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.template.UriTemplate;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
+import io.vertx.ext.web.client.template.Variables;
 import io.vertx.ext.web.codec.BodyCodec;
 import io.vertx.ext.web.multipart.MultipartForm;
 
@@ -177,7 +178,12 @@ public class HttpRequestImpl<T> implements HttpRequest<T> {
 
   public String computeURI() {
     if (uri instanceof UriTemplate) {
-      return ((UriTemplate)uri).expand(templateParams);
+      // Remove that later
+      Variables variables = Variables.variables();
+      templateParams.forEach(entry -> {
+        variables.set(entry.getKey(), entry.getValue());
+      });
+      return ((UriTemplate)uri).expand(variables);
     } else {
       String uri = (String) this.uri;
       if (queryParams != null && queryParams.size() > 0) {

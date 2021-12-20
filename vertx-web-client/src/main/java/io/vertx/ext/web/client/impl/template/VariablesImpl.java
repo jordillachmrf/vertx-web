@@ -22,21 +22,26 @@ public class VariablesImpl implements Variables {
   private final Map<String, Object> variables = new HashMap<>();
 
   @Override
-  public Variables set(String name, String value) {
-    variables.put(name, value);
+  public Variables set(String key, String value) {
+    variables.put(key, value);
     return this;
   }
 
   @Override
-  public Variables set(String name, List<String> values) {
-    variables.put(name, values);
+  public Variables set(String key, List<String> values) {
+    variables.put(key, values);
     return this;
   }
 
   @Override
-  public Variables set(String name, Map<String, String> entries) {
-    variables.put(name, entries);
+  public Variables set(String key, Map<String, String> entries) {
+    variables.put(key, entries);
     return this;
+  }
+
+  @Override
+  public Object get(String key) {
+    return variables.get(key);
   }
 
   @Override
