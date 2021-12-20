@@ -87,15 +87,26 @@ public class UriTemplateTest {
   }
 
   @Test
+  public void testExpandLiteral() {
+    assertEquals("%E2%82%AC%C3%AE%E2%82%AC", UriTemplate.of("€î%E2%82%AC").expand(MultiMap.caseInsensitiveMultiMap()));
+  }
+
+  @Test
   public void testExpandSimpleString() {
     MultiMap variables = MultiMap.caseInsensitiveMultiMap();
     variables.set("var1", "val1");
     variables.set("var2", "val2");
     variables.set("var3", "val3");
+    variables.set("euro", "€");
+    variables.set("slash", "/");
+    variables.set("percent", "%E2%82%AC");
     assertEquals("prefixsuffix", UriTemplate.of("prefix{var}suffix").expand(variables));
     assertEquals("prefixval1suffix", UriTemplate.of("prefix{var1}suffix").expand(variables));
     assertEquals("prefixval1,val2suffix", UriTemplate.of("prefix{var1,var2}suffix").expand(variables));
     assertEquals("prefixval1suffix", UriTemplate.of("prefix{var1,var}suffix").expand(variables));
     assertEquals("prefixval2suffix", UriTemplate.of("prefix{var,var2}suffix").expand(variables));
+    assertEquals("%E2%82%AC", UriTemplate.of("{euro}").expand(variables));
+    assertEquals("%2F", UriTemplate.of("{slash}").expand(variables));
+    assertEquals("%25E2%2582%25AC", UriTemplate.of("{percent}").expand(variables));
   }
 }

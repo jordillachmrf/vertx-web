@@ -15,9 +15,10 @@ import io.netty.util.collection.IntObjectMap;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.client.UriTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.function.Predicate;
 
 public class UriTemplateImpl implements UriTemplate {
 
@@ -30,6 +31,7 @@ public class UriTemplateImpl implements UriTemplate {
   public enum Operator {
 
     SIMPLE_STRING_EXPANSION() {
+      private final Predicate<Character> ALLOWED_CHARS = Parser::isUnreserved;
       @Override
       void expand(List<Varspec> variableList, MultiMap variables, StringBuilder sb) {
         boolean first = true;
@@ -41,7 +43,7 @@ public class UriTemplateImpl implements UriTemplate {
             } else {
               sb.append(',');
             }
-            sb.append(value);
+            encodeString(value, ALLOWED_CHARS, sb);
           }
         }
       }
@@ -134,10 +136,12 @@ public class UriTemplateImpl implements UriTemplate {
     }
 
     public int parseURITemplate(String s, int pos) {
+      StringBuilder sb = new StringBuilder();
       while (true) {
-        int idx = parseLiterals(s, pos);
+        int idx = parseLiterals(s, pos, sb);
         if (idx > pos) {
-          template.terms.add(new Literals(s.substring(pos, idx)));
+          template.terms.add(new Literals(sb.toString()));
+          sb.setLength(0);
           pos = idx;
         } else {
           idx = parseExpression(s, pos);
@@ -243,24 +247,33 @@ public class UriTemplateImpl implements UriTemplate {
         || (0xE1000 <= cp && cp <= 0xEFFFD);
     }
 
-    private static int parseLiterals(String s, int pos) {
-      if (pos < s.length()) {
-        int cp = s.charAt(pos);
-        if (cp == 0x21
-          || (0x23 <= cp && cp <= 0x24)
-          || cp == 0x26
-          || (0x28 <= cp && cp <= 0x3B)
-          || cp == 0x3D
-          || (0x3F <= cp && cp <= 0x5B)
-          || cp == 0x5D
-          || cp == 0x5F
-          || (0x61 <= cp && cp <= 0x7A)
-          || cp == 0x7E
-          || isUcschar(cp)
-          || isIprivate(cp)) {
+    private static final Predicate<Character> LITERALS_ALLOWED = ch -> Parser.isUnreserved(ch) || Parser.isReserved(ch);
+
+    private static int parseLiterals(String s, int pos, StringBuilder sb) {
+      while (pos < s.length() ) {
+        char ch = s.charAt(pos);
+        if (ch == 0x21
+          || (0x23 <= ch && ch <= 0x24)
+          || ch == 0x26
+          || (0x28 <= ch && ch <= 0x3B)
+          || ch == 0x3D
+          || (0x3F <= ch && ch <= 0x5B)
+          || ch == 0x5D
+          || ch == 0x5F
+          || (0x61 <= ch && ch <= 0x7A)
+          || ch == 0x7E
+          || isUcschar(ch)
+          || isIprivate(ch)) {
           pos++;
+          encodeChar(ch, LITERALS_ALLOWED, sb);
         } else {
-          return parsePctEncoded(s, pos);
+          int idx = parsePctEncoded(s, pos);
+          if (idx == pos) {
+            break;
+          }
+          // Directly insert as this is allowed
+          sb.append(s, pos, idx);
+          pos = idx;
         }
       }
       return pos;
@@ -370,6 +383,30 @@ public class UriTemplateImpl implements UriTemplate {
 
     private static boolean isExplode(int cp) {
       return cp == '*';
+    }
+  }
+
+  private static final String HEX_ALPHABET = "0123456789ABCDEF";
+
+  private static void encodeString(String s, Predicate<Character> allowedSet, StringBuilder buff) {
+    for (int i = 0;i < s.length();i++) {
+      char ch = s.charAt(i);
+      encodeChar(ch, allowedSet, buff);
+    }
+  }
+
+  private static void encodeChar(char ch, Predicate<Character> allowedSet, StringBuilder buff) {
+    if (allowedSet.test(ch)) {
+      buff.append(ch);
+    } else {
+      byte[] bytes = Character.toString(ch).getBytes(StandardCharsets.UTF_8);
+      for (byte b : bytes) {
+        int high = (b & 0xF0) >> 4;
+        int low = b & 0x0F;
+        buff.append('%');
+        buff.append(HEX_ALPHABET, high, high + 1);
+        buff.append(HEX_ALPHABET, low, low + 1);
+      }
     }
   }
 }
