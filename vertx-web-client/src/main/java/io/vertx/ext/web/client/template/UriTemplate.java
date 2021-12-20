@@ -8,13 +8,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
-package io.vertx.ext.web.client;
+package io.vertx.ext.web.client.template;
 
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.MultiMap;
-import io.vertx.ext.web.client.impl.UriTemplateImpl;
-
-import java.util.Map;
+import io.vertx.ext.web.client.impl.template.UriTemplateImpl;
 
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>

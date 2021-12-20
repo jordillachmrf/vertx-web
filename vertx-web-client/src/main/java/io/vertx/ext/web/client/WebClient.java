@@ -24,6 +24,7 @@ import io.vertx.core.http.RequestOptions;
 import io.vertx.core.http.impl.HttpClientImpl;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.client.impl.WebClientBase;
+import io.vertx.ext.web.client.template.UriTemplate;
 
 /**
  * An asynchronous HTTP / HTTP/2 client called {@code WebClient}.

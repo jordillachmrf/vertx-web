@@ -1,6 +1,7 @@
 package io.vertx.ext.web.client;
 
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.client.template.UriTemplate;
 import org.junit.Test;
 
 public class RequestUriTemplateTest extends WebClientTestBase {

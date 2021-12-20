@@ -1,11 +1,9 @@
 package io.vertx.ext.web.client;
 
 import io.vertx.core.MultiMap;
-import io.vertx.ext.web.client.impl.UriTemplateImpl;
+import io.vertx.ext.web.client.impl.template.UriTemplateImpl;
+import io.vertx.ext.web.client.template.UriTemplate;
 import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 

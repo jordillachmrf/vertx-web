@@ -8,12 +8,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
  */
-package io.vertx.ext.web.client.impl;
+package io.vertx.ext.web.client.impl.template;
 
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import io.vertx.core.MultiMap;
-import io.vertx.ext.web.client.UriTemplate;
+import io.vertx.ext.web.client.template.UriTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
