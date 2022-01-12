@@ -222,7 +222,7 @@ public class UriTemplateImpl implements UriTemplate {
     }
 
     private static boolean isHEXDIG(int cp) {
-      return isDIGIT(cp) || ('A' <= cp && cp <= 'F');
+      return isDIGIT(cp) || ('A' <= cp && cp <= 'F') || ('a' <= cp && cp <= 'f');
     }
 
     private static int parsePctEncoded(String s, int pos) {
