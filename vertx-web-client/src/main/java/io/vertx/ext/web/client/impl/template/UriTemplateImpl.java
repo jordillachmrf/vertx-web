@@ -12,15 +12,24 @@ package io.vertx.ext.web.client.impl.template;
 
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
-import io.vertx.core.MultiMap;
 import io.vertx.ext.web.client.template.UriTemplate;
 import io.vertx.ext.web.client.template.Variables;
 
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static io.vertx.ext.web.client.impl.template.UriTemplateImpl.Parser.isHEXDIG;
 
 public class UriTemplateImpl implements UriTemplate {
 
@@ -30,73 +39,219 @@ public class UriTemplateImpl implements UriTemplate {
 
   }
 
-  public enum Operator {
+  static final Predicate<Character> UNRESERVED_SET = Parser::isUnreserved; // SIMPLE
 
-    SIMPLE_STRING_EXPANSION(),
-    RESERVED_EXPANSION('+'),
-    LABEL_EXPANSION('.'),
-    PATH_SEGMENT_EXPANSION('/'),
-    PATH_STYLE_PARAMETER_EXPANSION(';'),
-    FORM_STYLE_QUERY_EXPANSION('?'),
-    FORM_STYLE_QUERY_CONTINUATION('&'),
+  public abstract static class SOperator {
 
-    FRAGMENT_EXPANSION('#'),
-
-    RESERVED('=', ',', '!', '@', '|')
-
-    ;
-
-    final Predicate<Character> allowedChars = Parser::isUnreserved; // SIMPLE
+    private final Predicate<Character> allowedSet;
+    private final String prefix;
+    private final String delimiter;
     final int[] cps;
 
-    Operator(int... cps) {
+    SOperator(Predicate<Character> allowedSet, String prefix, String delimiter, int... cps) {
+      this.allowedSet = allowedSet;
+      this.prefix = prefix;
+      this.delimiter = delimiter;
       this.cps = cps;
     }
 
-    void expand(List<Varspec> variableList, Variables variables, StringBuilder sb) {
-      if (this != SIMPLE_STRING_EXPANSION) {
-        throw new UnsupportedOperationException();
+    String join(boolean exploded, String name, String value) {
+      throw new UnsupportedOperationException();
+    }
+
+    String encodeName(String s) {
+      return encode(s, false);
+    }
+
+    String encodeValue(String s) {
+      return encode(s, false);
+    }
+
+    String encode(String s, boolean allowPctEncoded) {
+      StringBuilder sb = new StringBuilder();
+      encodeString(s, allowedSet, allowPctEncoded, sb);
+      return sb.toString();
+    }
+  }
+
+  private static class Bilta extends SOperator {
+
+    public Bilta(Predicate<Character> allowedSet, String prefix, String delimiter, int... cps) {
+      super(allowedSet, prefix, delimiter, cps);
+    }
+
+    @Override
+    String join(boolean exploded, String name, String value) {
+      return exploded ? name + "=" + value : value;
+    }
+  }
+
+  private static class Bilto extends SOperator {
+
+    public Bilto(Predicate<Character> allowedSet, String prefix, String delimiter, int... cps) {
+      super(allowedSet, prefix, delimiter, cps);
+    }
+
+    @Override
+    String join(boolean exploded, String name, String value) {
+      return name + "=" + value;
+    }
+  }
+
+  private static class SimpleStringExpansion extends Bilta {
+    public SimpleStringExpansion() {
+      super(UNRESERVED_SET, "", ",");
+    }
+  }
+
+  private static class ReservedExpansion extends Bilta {
+    public ReservedExpansion() {
+      super(cp -> Parser.isReserved(cp) || Parser.isUnreserved(cp), "", ",", '+');
+    }
+
+    @Override
+    String encodeValue(String s) {
+      return super.encode(s, true);
+    }
+  }
+
+  private static class FragmentExpansion extends Bilta {
+    public FragmentExpansion() {
+      super(cp -> Parser.isReserved(cp) || Parser.isUnreserved(cp), "#", ",", '#');
+    }
+
+    String encodeValue(String s) {
+      return super.encode(s, true);
+    }
+  }
+
+  private static class LabelExpansionWithDotPrefix extends Bilta {
+    public LabelExpansionWithDotPrefix() {
+      super(UNRESERVED_SET, ".", ".", '.');
+    }
+  }
+
+  private static class PathSegmentExpansion extends Bilta {
+    public PathSegmentExpansion() {
+      super(UNRESERVED_SET, "/", "/", '/');
+    }
+  }
+
+  private static class PathStyleParameterExpansion extends Bilto {
+    public PathStyleParameterExpansion() {
+      super(UNRESERVED_SET , ";", ";", ';');
+    }
+    @Override
+    String join(boolean exploded, String name, String value) {
+      if (!exploded && value.isEmpty()) {
+        return name;
       }
-      boolean first = true;
+      return super.join(exploded, name, value);
+    }
+  }
+
+  private static class FormStyleQueryExpansion extends Bilto {
+    public FormStyleQueryExpansion() {
+      super(UNRESERVED_SET, "?", "&", '?');
+    }
+  }
+
+  private static class FormStyleQueryContinuation extends Bilto {
+    public FormStyleQueryContinuation() {
+      super(UNRESERVED_SET, "&", "&", '&');
+    }
+  }
+
+  private static class Future extends SOperator {
+    public Future() {
+      super(UNRESERVED_SET, "", "", '=', ',', '!', '@', '|');
+    }
+  }
+
+  public enum Operator {
+
+    SIMPLE_STRING_EXPANSION(new SimpleStringExpansion()),
+    RESERVED_EXPANSION(new ReservedExpansion()),
+    LABEL_EXPANSION_WITH_DOT_PREFIX(new LabelExpansionWithDotPrefix()),
+    PATH_SEGMENT_EXPANSION(new PathSegmentExpansion()),
+    PATH_STYLE_PARAMETER_EXPANSION(new PathStyleParameterExpansion()),
+    FORM_STYLE_QUERY_EXPANSION(new FormStyleQueryExpansion()),
+    FORM_STYLE_QUERY_CONTINUATION(new FormStyleQueryContinuation()) ,
+    FRAGMENT_EXPANSION(new FragmentExpansion()),
+    FUTURE(new Future())
+
+    ;
+
+    private final SOperator so;
+
+    Operator(SOperator s) {
+      this.so = s;
+    }
+
+    void expand(List<Varspec> variableList, Variables variables, StringBuilder sb) {
+      List<String> l = new ArrayList<>();
       for (Varspec variable : variableList) {
         Object o = variables.get(variable.varname);
+        List<String> values;
         if (o == null) {
-          // Continue
+          continue;
         } else if (o instanceof String) {
-          if (first) {
-            first = false;
-          } else {
-            sb.append(',');
+          String s = (String) o;
+          if (variable.maxLength > 0 && variable.maxLength < s.length()) {
+            s = s.substring(0, variable.maxLength);
           }
-          encodeString((String) o, allowedChars, sb);
+          values = Collections.singletonList(format(variable, s));
         } else if (o instanceof List) {
+          if (variable.maxLength > 0) {
+            throw new IllegalArgumentException();
+          }
           List<String> list = (List<String>) o;
-          for (String value : list) {
-            if (first) {
-              first = false;
-            } else {
-              sb.append(',');
-            }
-            encodeString(value, allowedChars, sb);
+          if (list.isEmpty()) {
+            continue;
           }
+          values = format(variable, list);
         } else if (o instanceof Map) {
-          Map<String, String> map = (Map<String, String>) o;
-          for (Map.Entry<String, String> entry : map.entrySet()) {
-            if (first) {
-              first = false;
-            } else {
-              sb.append(',');
-            }
-            encodeString(entry.getKey(), allowedChars, sb);
-            sb.append(variable.exploded ? '=' : ',');
-            encodeString(entry.getValue(), allowedChars, sb);
+          if (variable.maxLength > 0) {
+            throw new IllegalArgumentException();
           }
+          Map<String, String> map = (Map<String, String>) o;
+          if (map.isEmpty()) {
+            continue;
+          }
+          values = format(variable, map);
         } else {
           throw new UnsupportedOperationException();
         }
+        l.addAll(values);
+      }
+      if (l.size() > 0) {
+        sb.append(format(l));
       }
     }
 
+    String format(Varspec variable, String value) {
+      return so.join(false, so.encodeName(variable.decoded), so.encodeValue(value));
+    }
+
+    List<String> format(Varspec variable, List<String> value) {
+      if (variable.exploded) {
+        return value.stream().map(v -> format(variable, v)).collect(Collectors.toList());
+      } else {
+        return Collections.singletonList(so.join(false, so.encodeName(variable.decoded), value.stream().map(so::encodeValue).collect(Collectors.joining(","))));
+      }
+    }
+
+    List<String> format(Varspec variable, Map<String, String> value) {
+      if (variable.exploded) {
+        return value.entrySet().stream().map(entry -> so.join(true, so.encodeName(entry.getKey()), so.encodeValue(entry.getValue()))).collect(Collectors.toList());
+      } else {
+        return Collections.singletonList(so.join(false, so.encodeName(variable.varname), value.entrySet().stream().flatMap(entry -> Stream.of(so.encodeValue(entry.getKey()), so.encodeValue(entry.getValue()))).collect(Collectors.joining(","))));
+      }
+    }
+
+    String format(List<String> l) {
+      return l.stream().collect(Collectors.joining(so.delimiter, so.prefix, ""));
+    }
   }
 
   private static final IntObjectMap<Operator> mapping;
@@ -104,7 +259,7 @@ public class UriTemplateImpl implements UriTemplate {
   static {
     IntObjectHashMap<Operator> m = new IntObjectHashMap<>();
     for (Operator op : Operator.values()) {
-      for (int cp : op.cps) {
+      for (int cp : op.so.cps) {
         m.put(cp, op);
       }
     }
@@ -127,10 +282,14 @@ public class UriTemplateImpl implements UriTemplate {
   }
 
   public static final class Varspec {
-    private final String varname;
-    private final boolean exploded;
-    private Varspec(String varname, boolean exploded) {
+    public final String varname;
+    public final String decoded;
+    public final int maxLength;
+    public final boolean exploded;
+    private Varspec(String varname, String decoded, int maxLength, boolean exploded) {
       this.varname = varname;
+      this.decoded = decoded;
+      this.maxLength = maxLength;
       this.exploded = exploded;
     }
   }
@@ -158,6 +317,11 @@ public class UriTemplateImpl implements UriTemplate {
       template = new UriTemplateImpl();
       if (parseURITemplate(s, 0) != s.length()) {
         throw new IllegalArgumentException();
+      }
+      for (Term term : template.terms) {
+        if (term instanceof Expression && ((Expression) term).operator == Operator.FUTURE) {
+          throw new IllegalArgumentException("Invalid reserved operator");
+        }
       }
       return template;
     }
@@ -210,8 +374,12 @@ public class UriTemplateImpl implements UriTemplate {
         || ('a'<= cp && cp <= 'z');
     }
 
-    public static int parseDIGIT(String s, int pos) {
-      if (pos < s.length() && isDIGIT(s.charAt(pos))) {
+    private int digit;
+
+    public int parseDIGIT(String s, int pos) {
+      char c;
+      if (pos < s.length() && isDIGIT(c = s.charAt(pos))) {
+        digit = c - '0';
         pos++;
       }
       return pos;
@@ -221,13 +389,28 @@ public class UriTemplateImpl implements UriTemplate {
       return ('0' <= cp && cp <= '9');
     }
 
-    private static boolean isHEXDIG(int cp) {
+    static boolean isHEXDIG(int cp) {
       return isDIGIT(cp) || ('A' <= cp && cp <= 'F') || ('a' <= cp && cp <= 'f');
     }
 
-    private static int parsePctEncoded(String s, int pos) {
-      if (pos + 2 < s.length() && s.charAt(pos) == '%' && isHEXDIG(s.charAt(pos + 1)) && isHEXDIG(s.charAt(pos + 2))) {
-        return pos + 2;
+    private char pctEncoded;
+
+    private int parsePctEncoded(String s, int pos) {
+      byte[] buffer = new byte[0]; //
+      while (pos + 2 < s.length() && s.charAt(pos) == '%' && isHEXDIG(s.charAt(pos + 1)) && isHEXDIG(s.charAt(pos + 2))) {
+        buffer = Arrays.copyOf(buffer, buffer.length + 1);
+        buffer[buffer.length - 1] = (byte)Integer.parseInt(s.substring(pos + 1, pos + 3), 16);
+        pos += 3;
+        ByteBuffer bb = ByteBuffer.wrap(buffer);
+        CharsetDecoder dec = StandardCharsets.UTF_8.newDecoder();
+        CharBuffer chars = CharBuffer.allocate(1);
+        CoderResult result = dec.decode(bb, chars, true);
+        if (result.isUnderflow()) {
+          dec.flush(chars);
+          chars.flip();
+          pctEncoded = chars.charAt(0);
+          break;
+        }
       }
       return pos;
     }
@@ -276,7 +459,7 @@ public class UriTemplateImpl implements UriTemplate {
 
     private static final Predicate<Character> LITERALS_ALLOWED = ch -> Parser.isUnreserved(ch) || Parser.isReserved(ch);
 
-    private static int parseLiterals(String s, int pos, StringBuilder sb) {
+    private int parseLiterals(String s, int pos, StringBuilder sb) {
       while (pos < s.length() ) {
         char ch = s.charAt(pos);
         if (ch == 0x21
@@ -324,32 +507,43 @@ public class UriTemplateImpl implements UriTemplate {
 
     public int parseVariableList(String s, int pos) {
       int idx = parseVarspec(s, pos);
+      if (expression != null) {
+        expression.value.add(varspec);
+      }
       if (idx > pos) {
         pos = idx;
         while (pos < s.length() && s.charAt(pos) == ',' && (idx = parseVarspec(s, pos + 1)) > pos + 1) {
+          if (expression != null) {
+            expression.value.add(varspec);
+          }
           pos = idx;
         }
       }
       return pos;
     }
 
+    public Varspec varspec;
+
     public int parseVarspec(String s, int pos) {
+      varspec = null;
       int idx = parseVarname(s, pos);
       if (idx > pos) {
         String varname = s.substring(pos, idx);
         pos = parseModifierLevel4(s, idx);
-        if (expression != null) {
-          expression.value.add(new Varspec(varname, exploded));
-        }
+        varspec = new Varspec(varname, sb.toString(), maxLength, exploded);
       }
       return pos;
     }
 
-    public static int parseVarname(String s, int pos) {
+    private StringBuilder sb;
+
+    public int parseVarname(String s, int pos) {
+      sb = new StringBuilder();
       int idx = parseVarchar(s, pos);
       while (idx > pos) {
         pos = idx;
         if (pos < s.length() && s.charAt(pos) == '.') {
+          sb.append('.');
           int j = parseVarchar(s, pos + 1);
           if (j > pos + 1) {
             idx = j;
@@ -361,13 +555,18 @@ public class UriTemplateImpl implements UriTemplate {
       return idx;
     }
 
-    private static int parseVarchar(String s, int pos) {
+    private int parseVarchar(String s, int pos) {
       if (pos < s.length()) {
         int cp = s.charAt(pos);
         if (isALPHA(cp) || isDIGIT(cp) || cp == '_')  {
+          sb.append((char)cp);
           pos++;
         } else {
-          pos = parsePctEncoded(s, pos);
+          int idx = parsePctEncoded(s, pos);
+          if (idx > pos) {
+            sb.append(pctEncoded);
+            pos = idx;
+          }
         }
       }
       return pos;
@@ -377,7 +576,8 @@ public class UriTemplateImpl implements UriTemplate {
 
     public int parseModifierLevel4(String s, int pos) {
       exploded = false;
-      int idx = parsePrefix(s, pos);
+      maxLength = -1;
+      int idx = parsePrefixModifier(s, pos);
       if (idx > pos) {
         pos = idx;
       } else if (pos < s.length() && isExplode(s.charAt(pos))) {
@@ -387,7 +587,7 @@ public class UriTemplateImpl implements UriTemplate {
       return pos;
     }
 
-    public static int parsePrefix(String s, int pos) {
+    public int parsePrefixModifier(String s, int pos) {
       if (pos < s.length() && s.charAt(pos) == ':') {
         int idx = parseMaxLength(s, pos + 1);
         if (idx > pos + 1) {
@@ -397,13 +597,17 @@ public class UriTemplateImpl implements UriTemplate {
       return pos;
     }
 
-    public static int parseMaxLength(String s, int pos) {
+    private int maxLength;
+
+    public int parseMaxLength(String s, int pos) {
       if (pos < s.length()) {
         int cp = s.charAt(pos);
         if ('1' <= cp && cp <= '9') {
           pos++;
+          maxLength = cp - '0';
           for (int i = 0;i < 3;i++) {
             if (parseDIGIT(s, pos) > pos) {
+              maxLength = maxLength * 10 + digit;
               pos++;
             }
           }
@@ -419,10 +623,16 @@ public class UriTemplateImpl implements UriTemplate {
 
   private static final String HEX_ALPHABET = "0123456789ABCDEF";
 
-  private static void encodeString(String s, Predicate<Character> allowedSet, StringBuilder buff) {
-    for (int i = 0;i < s.length();i++) {
-      char ch = s.charAt(i);
-      encodeChar(ch, allowedSet, buff);
+  private static void encodeString(String s, Predicate<Character> allowedSet, boolean allowPctEncoded, StringBuilder buff) {
+    int i = 0;
+    while (i < s.length()) {
+      char ch = s.charAt(i++);
+      if (allowPctEncoded && ch == '%' && i + 1 < s.length() && isHEXDIG(s.charAt(i)) && isHEXDIG(s.charAt(i + 1))) {
+        buff.append(s, i - 1, i + 2);
+        i+= 2;
+      } else {
+        encodeChar(ch, allowedSet, buff);
+      }
     }
   }
 

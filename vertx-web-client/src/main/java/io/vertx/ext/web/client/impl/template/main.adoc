@@ -1,0 +1,9 @@
+|===
+|Syntax |Form |Path Segment |Simple |Label | Path Style
+|[blue]#who# |*?*[blue]#who#*=*[red]#fred# |*/*[red]#fred# |[red]#fred# |*.*[red]#fred#|*;*[blue]#who#*=*[red]#fred#
+|[blue]#x#,[blue]#y# |*?*[blue]#x#*=*[red]#1024#*&amp;*[blue]#y#*=*[red]#768#|*/*[red]#1024#*/*[red]#768# |[red]#1024#*,*[red]#768# |*.*[red]#1024#*.*[red]#768#|*;*[blue]#x#*=*[red]#1024#*;*[blue]#y#*=*[red]#768#
+|[blue]#list#|*?*[blue]#list#*=*[red]#red#*,*[red]#green#|*/*[red]#red#*,*[red]#green# |[red]#red#*,*[red]#green# |*.*[red]#red#*,*[red]#green#|*;*[blue]#list#*=*[red]#red#*,*[red]#green#
+|[blue]#list#***|*?*[blue]#list#*=*[red]#red#*&amp;*[blue]#list#*=*[red]#green#|*/*[red]#red#*/*[red]#green# |[red]#red#*,*[red]#green# |*.*[red]#red#*.*[red]#green#|*;*[blue]#list#*=*[red]#red#*;*[blue]#list#*=*[red]#green#
+|[blue]#keys#|*?*[blue]#keys#*=*[green]#semi#*,*[red]#%3B#*,*[green]#dot#*,*[red]#.#|*/*[green]#semi#*,*[red]#%3B#*,*[green]#dot#*,*[red]#.# |[green]#semi#*,*[red]#%3B#*,*[green]#dot#*,*[red]#.# |*.*[green]#semi#*,*[red]#%3B#*,*[green]#dot#*,*[red]#.#|*;*[blue]#keys#*=*[green]#semi#*,*[red]#%3B#*,*[green]#dot#*,*[red]#.#
+|[blue]#keys#***|*?*[green]#semi#*=*[red]#%3B#*&amp;*[green]#dot#*=*[red]#.#|*/*[green]#semi#*=*[red]#%3B#*/*[green]#dot#*=*[red]#.# |[green]#semi#*=*[red]#%3B#*,*[green]#dot#*=*[red]#.# |*.*[green]#semi#*=*[red]#%3B#*.*[green]#dot#*=*[red]#.#|*;*[green]#semi#*=*[red]#%3B#*;*[green]#dot#*=*[red]#.#
+|===
