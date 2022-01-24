@@ -415,20 +415,20 @@ public class UriTemplateImpl implements UriTemplate {
       return pos;
     }
 
-    private static boolean isUnreserved(char cp) {
-      return isALPHA(cp) || isDIGIT(cp) || cp == '-' || cp == '.' || cp == '_' || cp == '~';
+    private static boolean isUnreserved(char ch) {
+      return isALPHA(ch) || isDIGIT(ch) || ch == '-' || ch == '.' || ch == '_' || ch == '~';
     }
 
-    private static boolean isReserved(char cp) {
-      return isGenDelims(cp) || isSubDelims(cp);
+    private static boolean isReserved(char ch) {
+      return isGenDelims(ch) || isSubDelims(ch);
     }
 
-    private static boolean isGenDelims(char cp) {
-      return cp == ':' || cp == '/' || cp == '?' || cp == '#' || cp == '[' || cp == ']' || cp == '@';
+    private static boolean isGenDelims(char ch) {
+      return ch == ':' || ch == '/' || ch == '?' || ch == '#' || ch == '[' || ch == ']' || ch == '@';
     }
 
-    private static boolean isSubDelims(char cp) {
-      return cp == '!' || cp == '$' || cp == '&' || cp == '\'' || cp == '(' || cp == ')' || cp == '*' || cp == '+' || cp == ',' || cp == ';' || cp == '=';
+    private static boolean isSubDelims(char ch) {
+      return ch == '!' || ch == '$' || ch == '&' || ch == '\'' || ch == '(' || ch == ')' || ch == '*' || ch == '+' || ch == ',' || ch == ';' || ch == '=';
     }
 
     private static boolean isIprivate(int cp) {
@@ -571,9 +571,9 @@ public class UriTemplateImpl implements UriTemplate {
 
     private int parseVarchar(String s, int pos) {
       if (pos < s.length()) {
-        char cp = s.charAt(pos);
-        if (isALPHA(cp) || isDIGIT(cp) || cp == '_')  {
-          sb.append(cp);
+        char ch = s.charAt(pos);
+        if (isALPHA(ch) || isDIGIT(ch) || ch == '_')  {
+          sb.append(ch);
           pos++;
         } else {
           int idx = parsePctEncoded(s, pos);
