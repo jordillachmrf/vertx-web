@@ -10,6 +10,8 @@
  */
 package io.vertx.ext.web.client.impl.template;
 
+import io.netty.util.collection.CharObjectHashMap;
+import io.netty.util.collection.CharObjectMap;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.IntObjectMap;
 import io.vertx.ext.web.client.template.UriTemplate;
@@ -46,13 +48,13 @@ public class UriTemplateImpl implements UriTemplate {
     private final Predicate<Character> allowedSet;
     private final String prefix;
     private final String delimiter;
-    final int[] cps;
+    final char[] chars;
 
-    SOperator(Predicate<Character> allowedSet, String prefix, String delimiter, int... cps) {
+    SOperator(Predicate<Character> allowedSet, String prefix, String delimiter, char... chars) {
       this.allowedSet = allowedSet;
       this.prefix = prefix;
       this.delimiter = delimiter;
-      this.cps = cps;
+      this.chars = chars;
     }
 
     String join(boolean exploded, String name, String value) {
@@ -76,8 +78,8 @@ public class UriTemplateImpl implements UriTemplate {
 
   private static class Bilta extends SOperator {
 
-    public Bilta(Predicate<Character> allowedSet, String prefix, String delimiter, int... cps) {
-      super(allowedSet, prefix, delimiter, cps);
+    public Bilta(Predicate<Character> allowedSet, String prefix, String delimiter, char... chars) {
+      super(allowedSet, prefix, delimiter, chars);
     }
 
     @Override
@@ -88,8 +90,8 @@ public class UriTemplateImpl implements UriTemplate {
 
   private static class Bilto extends SOperator {
 
-    public Bilto(Predicate<Character> allowedSet, String prefix, String delimiter, int... cps) {
-      super(allowedSet, prefix, delimiter, cps);
+    public Bilto(Predicate<Character> allowedSet, String prefix, String delimiter, char... chars) {
+      super(allowedSet, prefix, delimiter, chars);
     }
 
     @Override
@@ -254,13 +256,13 @@ public class UriTemplateImpl implements UriTemplate {
     }
   }
 
-  private static final IntObjectMap<Operator> mapping;
+  private static final CharObjectMap<Operator> mapping;
 
   static {
-    IntObjectHashMap<Operator> m = new IntObjectHashMap<>();
+    CharObjectMap<Operator> m = new CharObjectHashMap<>();
     for (Operator op : Operator.values()) {
-      for (int cp : op.so.cps) {
-        m.put(cp, op);
+      for (char ch : op.so.chars) {
+        m.put(ch, op);
       }
     }
     mapping = m;
@@ -327,12 +329,10 @@ public class UriTemplateImpl implements UriTemplate {
     }
 
     public int parseURITemplate(String s, int pos) {
-      StringBuilder sb = new StringBuilder();
       while (true) {
-        int idx = parseLiterals(s, pos, sb);
+        int idx = parseLiterals(s, pos);
         if (idx > pos) {
-          template.terms.add(new Literals(sb.toString()));
-          sb.setLength(0);
+          template.terms.add(new Literals(literals.toString()));
           pos = idx;
         } else {
           idx = parseExpression(s, pos);
@@ -369,9 +369,9 @@ public class UriTemplateImpl implements UriTemplate {
       return pos;
     }
 
-    private static boolean isALPHA(int cp) {
-      return ('A' <= cp && cp <= 'Z')
-        || ('a'<= cp && cp <= 'z');
+    private static boolean isALPHA(char ch) {
+      return ('A' <= ch && ch <= 'Z')
+        || ('a'<= ch && ch <= 'z');
     }
 
     private int digit;
@@ -385,12 +385,12 @@ public class UriTemplateImpl implements UriTemplate {
       return pos;
     }
 
-    private static boolean isDIGIT(int cp) {
-      return ('0' <= cp && cp <= '9');
+    private static boolean isDIGIT(char ch) {
+      return ('0' <= ch && ch <= '9');
     }
 
-    static boolean isHEXDIG(int cp) {
-      return isDIGIT(cp) || ('A' <= cp && cp <= 'F') || ('a' <= cp && cp <= 'f');
+    static boolean isHEXDIG(char ch) {
+      return isDIGIT(ch) || ('A' <= ch && ch <= 'F') || ('a' <= ch && ch <= 'f');
     }
 
     private char pctEncoded;
@@ -415,19 +415,19 @@ public class UriTemplateImpl implements UriTemplate {
       return pos;
     }
 
-    private static boolean isUnreserved(int cp) {
+    private static boolean isUnreserved(char cp) {
       return isALPHA(cp) || isDIGIT(cp) || cp == '-' || cp == '.' || cp == '_' || cp == '~';
     }
 
-    private static boolean isReserved(int cp) {
+    private static boolean isReserved(char cp) {
       return isGenDelims(cp) || isSubDelims(cp);
     }
 
-    private static boolean isGenDelims(int cp) {
+    private static boolean isGenDelims(char cp) {
       return cp == ':' || cp == '/' || cp == '?' || cp == '#' || cp == '[' || cp == ']' || cp == '@';
     }
 
-    private static boolean isSubDelims(int cp) {
+    private static boolean isSubDelims(char cp) {
       return cp == '!' || cp == '$' || cp == '&' || cp == '\'' || cp == '(' || cp == ')' || cp == '*' || cp == '+' || cp == ',' || cp == ';' || cp == '=';
     }
 
@@ -459,7 +459,10 @@ public class UriTemplateImpl implements UriTemplate {
 
     private static final Predicate<Character> LITERALS_ALLOWED = ch -> Parser.isUnreserved(ch) || Parser.isReserved(ch);
 
-    private int parseLiterals(String s, int pos, StringBuilder sb) {
+    public StringBuilder literals;
+
+    public int parseLiterals(String s, int pos) {
+      literals = new StringBuilder();
       while (pos < s.length() ) {
         char ch = s.charAt(pos);
         if (ch == 0x21
@@ -471,38 +474,49 @@ public class UriTemplateImpl implements UriTemplate {
           || ch == 0x5D
           || ch == 0x5F
           || (0x61 <= ch && ch <= 0x7A)
-          || ch == 0x7E
-          || isUcschar(ch)
-          || isIprivate(ch)) {
+          || ch == 0x7E) {
           pos++;
-          encodeChar(ch, LITERALS_ALLOWED, sb);
+          encodeChar(ch, LITERALS_ALLOWED, literals);
         } else {
-          int idx = parsePctEncoded(s, pos);
-          if (idx == pos) {
-            break;
+          if (Character.isSurrogate(ch)) {
+            if (pos + 1 >= s.length()) {
+              throw new IllegalArgumentException();
+            }
+            int cp = s.codePointAt(pos);
+            if (isUcschar(cp) || isIprivate(cp)) {
+              pctEncode(s.substring(pos, pos + 2), literals);
+              pos += 2;
+            } else {
+              break;
+            }
+          } else {
+            int idx = parsePctEncoded(s, pos);
+            if (idx == pos) {
+              break;
+            }
+            // Directly insert as this is allowed
+            literals.append(s, pos, idx);
+            pos = idx;
           }
-          // Directly insert as this is allowed
-          sb.append(s, pos, idx);
-          pos = idx;
         }
       }
       return pos;
     }
 
-    private static boolean isOperator(int cp) {
-      return isOpLevel2(cp) || isOpLevel3(cp) || isOpReserve(cp);
+    private static boolean isOperator(char ch) {
+      return isOpLevel2(ch) || isOpLevel3(ch) || isOpReserve(ch);
     }
 
-    private static boolean isOpLevel2(int cp) {
-      return cp == '+' || cp == '#';
+    private static boolean isOpLevel2(char ch) {
+      return ch == '+' || ch == '#';
     }
 
-    private static boolean isOpLevel3(int cp) {
-      return cp == '.' || cp == '/' || cp == ';' || cp == '?' || cp == '&';
+    private static boolean isOpLevel3(char ch) {
+      return ch == '.' || ch == '/' || ch == ';' || ch == '?' || ch == '&';
     }
 
-    private static boolean isOpReserve(int cp) {
-      return cp == '=' || cp == ',' || cp == '!' || cp == '@' || cp == '|';
+    private static boolean isOpReserve(char ch) {
+      return ch == '=' || ch == ',' || ch == '!' || ch == '@' || ch == '|';
     }
 
     public int parseVariableList(String s, int pos) {
@@ -557,9 +571,9 @@ public class UriTemplateImpl implements UriTemplate {
 
     private int parseVarchar(String s, int pos) {
       if (pos < s.length()) {
-        int cp = s.charAt(pos);
+        char cp = s.charAt(pos);
         if (isALPHA(cp) || isDIGIT(cp) || cp == '_')  {
-          sb.append((char)cp);
+          sb.append(cp);
           pos++;
         } else {
           int idx = parsePctEncoded(s, pos);
@@ -601,10 +615,10 @@ public class UriTemplateImpl implements UriTemplate {
 
     public int parseMaxLength(String s, int pos) {
       if (pos < s.length()) {
-        int cp = s.charAt(pos);
-        if ('1' <= cp && cp <= '9') {
+        char ch = s.charAt(pos);
+        if ('1' <= ch && ch <= '9') {
           pos++;
-          maxLength = cp - '0';
+          maxLength = ch - '0';
           for (int i = 0;i < 3;i++) {
             if (parseDIGIT(s, pos) > pos) {
               maxLength = maxLength * 10 + digit;
@@ -616,8 +630,8 @@ public class UriTemplateImpl implements UriTemplate {
       return pos;
     }
 
-    private static boolean isExplode(int cp) {
-      return cp == '*';
+    private static boolean isExplode(char ch) {
+      return ch == '*';
     }
   }
 
@@ -627,7 +641,10 @@ public class UriTemplateImpl implements UriTemplate {
     int i = 0;
     while (i < s.length()) {
       char ch = s.charAt(i++);
-      if (allowPctEncoded && ch == '%' && i + 1 < s.length() && isHEXDIG(s.charAt(i)) && isHEXDIG(s.charAt(i + 1))) {
+      if (Character.isSurrogate(ch)) {
+        pctEncode(s.substring(i - 1, i + 1), buff);
+        i++;
+      } else if (allowPctEncoded && ch == '%' && i + 1 < s.length() && isHEXDIG(s.charAt(i)) && isHEXDIG(s.charAt(i + 1))) {
         buff.append(s, i - 1, i + 2);
         i+= 2;
       } else {
@@ -648,6 +665,17 @@ public class UriTemplateImpl implements UriTemplate {
         buff.append(HEX_ALPHABET, high, high + 1);
         buff.append(HEX_ALPHABET, low, low + 1);
       }
+    }
+  }
+
+  private static void pctEncode(String s, StringBuilder buff) {
+    byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+    for (byte b : bytes) {
+      int high = (b & 0xF0) >> 4;
+      int low = b & 0x0F;
+      buff.append('%');
+      buff.append(HEX_ALPHABET, high, high + 1);
+      buff.append(HEX_ALPHABET, low, low + 1);
     }
   }
 }

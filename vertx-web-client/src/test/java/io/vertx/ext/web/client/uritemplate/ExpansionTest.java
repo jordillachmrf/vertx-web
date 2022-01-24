@@ -29,6 +29,7 @@ public class ExpansionTest {
     variables.set("empty", "");
     variables.set("empty_list", Collections.emptyList());
     variables.set("percent", "%E2%82%AC");
+    variables.set("surrogate", "\ud83c\udf09");
     variables.set("list", Arrays.asList("one", "two", "three"));
     Map<String, String> map = new LinkedHashMap<>();
     map.put("one", "1");
@@ -58,6 +59,7 @@ public class ExpansionTest {
     assertEquals("%2F", UriTemplate.of("{slash}").expand(variables));
     assertEquals("%2C", UriTemplate.of("{comma}").expand(variables));
     assertEquals("%25E2%2582%25AC", UriTemplate.of("{percent}").expand(variables));
+    assertEquals("%F0%9F%8C%89", UriTemplate.of("{surrogate}").expand(variables));
     assertEquals("one,two,three", UriTemplate.of("{list}").expand(variables));
     assertEquals("one,two,three", UriTemplate.of("{list*}").expand(variables));
     assertEquals("", UriTemplate.of("{empty_list}").expand(variables));
@@ -87,6 +89,7 @@ public class ExpansionTest {
     assertEquals("?%2F=%2F", UriTemplate.of("{?%2F}").expand(variables));
     assertEquals("?comma=%2C", UriTemplate.of("{?comma}").expand(variables));
     assertEquals("?percent=%25E2%2582%25AC", UriTemplate.of("{?percent}").expand(variables));
+    assertEquals("?surrogate=%F0%9F%8C%89", UriTemplate.of("{?surrogate}").expand(variables));
     assertEquals("?list=one,two,three", UriTemplate.of("{?list}").expand(variables));
     assertEquals("?list=one&list=two&list=three", UriTemplate.of("{?list*}").expand(variables));
     assertEquals("", UriTemplate.of("{?empty_list}").expand(variables));
@@ -115,6 +118,7 @@ public class ExpansionTest {
     assertEquals("&%2F=%2F", UriTemplate.of("{&%2F}").expand(variables));
     assertEquals("&comma=%2C", UriTemplate.of("{&comma}").expand(variables));
     assertEquals("&percent=%25E2%2582%25AC", UriTemplate.of("{&percent}").expand(variables));
+    assertEquals("&surrogate=%F0%9F%8C%89", UriTemplate.of("{&surrogate}").expand(variables));
     assertEquals("&list=one,two,three", UriTemplate.of("{&list}").expand(variables));
     assertEquals("&list=one&list=two&list=three", UriTemplate.of("{&list*}").expand(variables));
     assertEquals("", UriTemplate.of("{&empty_list}").expand(variables));
@@ -142,6 +146,7 @@ public class ExpansionTest {
     assertEquals("/%2F", UriTemplate.of("{/slash}").expand(variables));
     assertEquals("/%2C", UriTemplate.of("{/comma}").expand(variables));
     assertEquals("/%25E2%2582%25AC", UriTemplate.of("{/percent}").expand(variables));
+    assertEquals("/%F0%9F%8C%89", UriTemplate.of("{/surrogate}").expand(variables));
     assertEquals("/one,two,three", UriTemplate.of("{/list}").expand(variables));
     assertEquals("/one/two/three", UriTemplate.of("{/list*}").expand(variables));
     assertEquals("", UriTemplate.of("{/empty_list}").expand(variables));
@@ -168,6 +173,7 @@ public class ExpansionTest {
     assertEquals(";%2F=%2F", UriTemplate.of("{;%2F}").expand(variables));
     assertEquals(";comma=%2C", UriTemplate.of("{;comma}").expand(variables));
     assertEquals(";percent=%25E2%2582%25AC", UriTemplate.of("{;percent}").expand(variables));
+    assertEquals(";surrogate=%F0%9F%8C%89", UriTemplate.of("{;surrogate}").expand(variables));
     assertEquals(";list=one,two,three", UriTemplate.of("{;list}").expand(variables));
     assertEquals(";list=one;list=two;list=three", UriTemplate.of("{;list*}").expand(variables));
     assertEquals("", UriTemplate.of("{;empty_list}").expand(variables));
@@ -195,6 +201,7 @@ public class ExpansionTest {
     assertEquals("/", UriTemplate.of("{+slash}").expand(variables));
     assertEquals(",", UriTemplate.of("{+comma}").expand(variables));
     assertEquals("%E2%82%AC", UriTemplate.of("{+percent}").expand(variables));
+    assertEquals("%F0%9F%8C%89", UriTemplate.of("{+surrogate}").expand(variables));
     assertEquals("one,two,three", UriTemplate.of("{+list}").expand(variables));
     assertEquals("one,two,three", UriTemplate.of("{+list*}").expand(variables));
     assertEquals("", UriTemplate.of("{+empty_list}").expand(variables));
@@ -217,6 +224,7 @@ public class ExpansionTest {
     assertEquals("#/", UriTemplate.of("{#slash}").expand(variables));
     assertEquals("#,", UriTemplate.of("{#comma}").expand(variables));
     assertEquals("#%E2%82%AC", UriTemplate.of("{#percent}").expand(variables));
+    assertEquals("#%F0%9F%8C%89", UriTemplate.of("{#surrogate}").expand(variables));
     assertEquals("#one,two,three", UriTemplate.of("{#list}").expand(variables));
     assertEquals("#one,two,three", UriTemplate.of("{#list*}").expand(variables));
     assertEquals("", UriTemplate.of("{#empty_list}").expand(variables));
@@ -239,6 +247,7 @@ public class ExpansionTest {
     assertEquals(".%2F", UriTemplate.of("{.slash}").expand(variables));
     assertEquals(".%2C", UriTemplate.of("{.comma}").expand(variables));
     assertEquals(".%25E2%2582%25AC", UriTemplate.of("{.percent}").expand(variables));
+    assertEquals(".%F0%9F%8C%89", UriTemplate.of("{.surrogate}").expand(variables));
     assertEquals(".one,two,three", UriTemplate.of("{.list}").expand(variables));
     assertEquals(".one.two.three", UriTemplate.of("{.list*}").expand(variables));
     assertEquals("", UriTemplate.of("{.empty_list}").expand(variables));

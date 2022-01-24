@@ -15,6 +15,14 @@ public class UriTemplateTest {
   }
 
   @Test
+  public void testParseLiteral() {
+    UriTemplateImpl.Parser parser = new UriTemplateImpl.Parser();
+    assertEquals(3, parser.parseLiterals("foo", 0));
+    assertEquals(2, parser.parseLiterals("\ud83c\udf09", 0));
+    assertEquals("%F0%9F%8C%89", parser.literals.toString());
+  }
+
+  @Test
   public void testParseExpression() {
     assertEquals(0, new UriTemplateImpl.Parser().parseExpression("{", 0));
     assertEquals(2, new UriTemplateImpl.Parser().parseExpression("{}", 0));
