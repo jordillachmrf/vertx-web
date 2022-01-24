@@ -12,8 +12,6 @@ package io.vertx.ext.web.client.impl.template;
 
 import io.netty.util.collection.CharObjectHashMap;
 import io.netty.util.collection.CharObjectMap;
-import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
 import io.vertx.ext.web.client.template.UriTemplate;
 import io.vertx.ext.web.client.template.Variables;
 
@@ -35,13 +33,13 @@ import static io.vertx.ext.web.client.impl.template.UriTemplateImpl.Parser.isHEX
 
 public class UriTemplateImpl implements UriTemplate {
 
-  private final List<Term> terms = new ArrayList<>();
+  private static final String HEX_ALPHABET = "0123456789ABCDEF";
+  private static final Predicate<Character> UNRESERVED_SET = Parser::isUnreserved;
+  private static final Predicate<Character> LITERALS_SET = ch -> Parser.isUnreserved(ch) || Parser.isReserved(ch);
 
   public abstract static class Term {
 
   }
-
-  static final Predicate<Character> UNRESERVED_SET = Parser::isUnreserved; // SIMPLE
 
   public abstract static class SOperator {
 
@@ -57,7 +55,7 @@ public class UriTemplateImpl implements UriTemplate {
       this.chars = chars;
     }
 
-    String join(boolean exploded, String name, String value) {
+    String join(boolean entry, String name, String value) {
       throw new UnsupportedOperationException();
     }
 
@@ -76,37 +74,43 @@ public class UriTemplateImpl implements UriTemplate {
     }
   }
 
-  private static class Bilta extends SOperator {
+  /**
+   * Operator implementation issuing a {@code key=value} only for exploded maps, e.g
+   */
+  private static class Cat1 extends SOperator {
 
-    public Bilta(Predicate<Character> allowedSet, String prefix, String delimiter, char... chars) {
+    public Cat1(Predicate<Character> allowedSet, String prefix, String delimiter, char... chars) {
       super(allowedSet, prefix, delimiter, chars);
     }
 
     @Override
-    String join(boolean exploded, String name, String value) {
-      return exploded ? name + "=" + value : value;
+    String join(boolean entry, String name, String value) {
+      return entry ? name + "=" + value : value;
     }
   }
 
-  private static class Bilto extends SOperator {
+  /**
+   * Operator implementation always issuing as {@code key=value}, e.g form style query expansion
+   */
+  private static class Cat2 extends SOperator {
 
-    public Bilto(Predicate<Character> allowedSet, String prefix, String delimiter, char... chars) {
+    public Cat2(Predicate<Character> allowedSet, String prefix, String delimiter, char... chars) {
       super(allowedSet, prefix, delimiter, chars);
     }
 
     @Override
-    String join(boolean exploded, String name, String value) {
+    String join(boolean entry, String name, String value) {
       return name + "=" + value;
     }
   }
 
-  private static class SimpleStringExpansion extends Bilta {
+  private static class SimpleStringExpansion extends Cat1 {
     public SimpleStringExpansion() {
       super(UNRESERVED_SET, "", ",");
     }
   }
 
-  private static class ReservedExpansion extends Bilta {
+  private static class ReservedExpansion extends Cat1 {
     public ReservedExpansion() {
       super(cp -> Parser.isReserved(cp) || Parser.isUnreserved(cp), "", ",", '+');
     }
@@ -117,7 +121,7 @@ public class UriTemplateImpl implements UriTemplate {
     }
   }
 
-  private static class FragmentExpansion extends Bilta {
+  private static class FragmentExpansion extends Cat1 {
     public FragmentExpansion() {
       super(cp -> Parser.isReserved(cp) || Parser.isUnreserved(cp), "#", ",", '#');
     }
@@ -127,38 +131,39 @@ public class UriTemplateImpl implements UriTemplate {
     }
   }
 
-  private static class LabelExpansionWithDotPrefix extends Bilta {
+  private static class LabelExpansionWithDotPrefix extends Cat1 {
     public LabelExpansionWithDotPrefix() {
       super(UNRESERVED_SET, ".", ".", '.');
     }
   }
 
-  private static class PathSegmentExpansion extends Bilta {
+  private static class PathSegmentExpansion extends Cat1 {
     public PathSegmentExpansion() {
       super(UNRESERVED_SET, "/", "/", '/');
     }
   }
 
-  private static class PathStyleParameterExpansion extends Bilto {
+  private static class PathStyleParameterExpansion extends Cat2 {
     public PathStyleParameterExpansion() {
       super(UNRESERVED_SET , ";", ";", ';');
     }
+
     @Override
-    String join(boolean exploded, String name, String value) {
-      if (!exploded && value.isEmpty()) {
+    String join(boolean entry, String name, String value) {
+      if (!entry && value.isEmpty()) {
         return name;
       }
-      return super.join(exploded, name, value);
+      return super.join(entry, name, value);
     }
   }
 
-  private static class FormStyleQueryExpansion extends Bilto {
+  private static class FormStyleQueryExpansion extends Cat2 {
     public FormStyleQueryExpansion() {
       super(UNRESERVED_SET, "?", "&", '?');
     }
   }
 
-  private static class FormStyleQueryContinuation extends Bilto {
+  private static class FormStyleQueryContinuation extends Cat2 {
     public FormStyleQueryContinuation() {
       super(UNRESERVED_SET, "&", "&", '&');
     }
@@ -294,20 +299,6 @@ public class UriTemplateImpl implements UriTemplate {
       this.maxLength = maxLength;
       this.exploded = exploded;
     }
-  }
-
-  @Override
-  public String expand(Variables variables) {
-    StringBuilder sb = new StringBuilder();
-    terms.forEach(term -> {
-      if (term instanceof Literals) {
-        sb.append(((Literals)term).value);
-      } else {
-        Expression expression = (Expression) term;
-        expression.operator.expand(expression.value, variables, sb);
-      }
-    });
-    return sb.toString();
   }
 
   public static class Parser {
@@ -457,8 +448,6 @@ public class UriTemplateImpl implements UriTemplate {
         || (0xE1000 <= cp && cp <= 0xEFFFD);
     }
 
-    private static final Predicate<Character> LITERALS_ALLOWED = ch -> Parser.isUnreserved(ch) || Parser.isReserved(ch);
-
     public StringBuilder literals;
 
     public int parseLiterals(String s, int pos) {
@@ -476,7 +465,7 @@ public class UriTemplateImpl implements UriTemplate {
           || (0x61 <= ch && ch <= 0x7A)
           || ch == 0x7E) {
           pos++;
-          encodeChar(ch, LITERALS_ALLOWED, literals);
+          encodeChar(ch, LITERALS_SET, literals);
         } else {
           if (Character.isSurrogate(ch)) {
             if (pos + 1 >= s.length()) {
@@ -635,7 +624,21 @@ public class UriTemplateImpl implements UriTemplate {
     }
   }
 
-  private static final String HEX_ALPHABET = "0123456789ABCDEF";
+  private final List<Term> terms = new ArrayList<>();
+
+  @Override
+  public String expand(Variables variables) {
+    StringBuilder sb = new StringBuilder();
+    terms.forEach(term -> {
+      if (term instanceof Literals) {
+        sb.append(((Literals)term).value);
+      } else {
+        Expression expression = (Expression) term;
+        expression.operator.expand(expression.value, variables, sb);
+      }
+    });
+    return sb.toString();
+  }
 
   private static void encodeString(String s, Predicate<Character> allowedSet, boolean allowPctEncoded, StringBuilder buff) {
     int i = 0;
