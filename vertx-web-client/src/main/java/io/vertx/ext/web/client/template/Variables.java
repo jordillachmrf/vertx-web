@@ -49,7 +49,7 @@ public interface Variables {
    * @return an instance populated from a JSON object
    */
   static Variables variables(JsonObject json) {
-    return new VariablesImpl(json);
+    return variables().addAll(json);
   }
 
   /**
@@ -78,6 +78,36 @@ public interface Variables {
    */
   @Fluent
   Variables set(String name, Map<String, String> value);
+
+  /**
+   * Like {@link #addAll(JsonObject)} but overwrites previous variables.
+   */
+  @Fluent
+  default Variables setAll(JsonObject json) {
+    return clear().addAll(json);
+  }
+
+  /**
+   * Populates with a JSON object:
+   *
+   * <ul>
+   *   <li>{@code null} are conserved</li>
+   *   <li>{@code JsonArray} is converted to {@code List<String>}</li>
+   *   <li>{@code JsonObject} is converted to {@code Map<String, String>}</li>
+   *   <li>any other value is converted to a string</li>
+   * </ul>
+   *
+   * Note that nested JSON elements are converted to a string, so { "user": { "first_name": "John", "last_name": "Doe", "address" : { "city": "Paris", etc... } } }
+   * flattens the JSON "address" to the string "{\"city\":\"Paris\",etc...}".
+   *
+   * @param json the json that populates the returned variables
+   * @return a reference to this, so the API can be used fluently
+   */
+  @Fluent
+  Variables addAll(JsonObject json);
+
+  @Fluent
+  Variables clear();
 
   /**
    * @return the set of variable names

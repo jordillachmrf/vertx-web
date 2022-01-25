@@ -32,11 +32,27 @@ public class VariablesImpl implements Variables {
 
   private final Map<String, Object> variables = new LinkedHashMap<>();
 
-  public VariablesImpl() {
+  @Override
+  public Variables set(String name, String value) {
+    variables.put(name, value);
+    return this;
   }
 
-  public VariablesImpl(JsonObject that) {
-    for (Map.Entry<String, Object> entry : that) {
+  @Override
+  public Variables set(String name, List<String> value) {
+    variables.put(name, value);
+    return this;
+  }
+
+  @Override
+  public Variables set(String name, Map<String, String> value) {
+    variables.put(name, value);
+    return this;
+  }
+
+  @Override
+  public Variables addAll(JsonObject jsonObject) {
+    for (Map.Entry<String, Object> entry : jsonObject) {
       String name = entry.getKey();
       Object value = entry.getValue();
       if (value instanceof JsonObject) {
@@ -57,23 +73,12 @@ public class VariablesImpl implements Variables {
         set(name, toString(value));
       }
     }
-  }
-
-  @Override
-  public Variables set(String name, String value) {
-    variables.put(name, value);
     return this;
   }
 
   @Override
-  public Variables set(String name, List<String> value) {
-    variables.put(name, value);
-    return this;
-  }
-
-  @Override
-  public Variables set(String name, Map<String, String> value) {
-    variables.put(name, value);
+  public Variables clear() {
+    variables.clear();
     return this;
   }
 
