@@ -30,28 +30,6 @@ public class TckTest {
     return new JsonObject(Buffer.buffer(baos.toByteArray()));
   }
 
-  private static Variables loadVariables(JsonObject json) {
-    Variables variables = Variables.variables();
-    json.forEach(entry -> {
-      Object value = entry.getValue();
-      String name = entry.getKey();
-      if (value == null) {
-        variables.set(name, (String)null);
-      } else if (value instanceof String) {
-        variables.set(name, (String) value);
-      } else if (value instanceof JsonArray) {
-        variables.set(name, ((JsonArray) value).stream().map(o -> (String)o).collect(Collectors.toList()));
-      } else if (value instanceof JsonObject) {
-        variables.set(name, ((JsonObject) value).stream().collect(Collectors.toMap(Map.Entry::getKey, e -> (String)e.getValue())));
-      } else if (value instanceof Number) {
-        variables.set(name, value.toString());
-      } else {
-        throw new AssertionError("Unsupported variable " + value.getClass());
-      }
-    });
-    return variables;
-  }
-
   @Test
   public void testSpecExamples() throws IOException {
     runTCK("uritemplate-test/spec-examples.json");
@@ -77,7 +55,7 @@ public class TckTest {
     for (String desc : groups.fieldNames()) {
       JsonObject group = groups.getJsonObject(desc);
       String level = group.getString("level");
-      Variables variables = loadVariables(group.getJsonObject("variables"));
+      Variables variables = Variables.variables(group.getJsonObject("variables"));
       JsonArray testcases = group.getJsonArray("testcases");
       testcases.forEach(testcase -> {
         JsonArray array = (JsonArray) testcase;

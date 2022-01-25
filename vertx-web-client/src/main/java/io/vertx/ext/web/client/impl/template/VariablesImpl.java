@@ -10,16 +10,55 @@
  */
 package io.vertx.ext.web.client.impl.template;
 
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.template.Variables;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class VariablesImpl implements Variables {
 
-  private final Map<String, Object> variables = new HashMap<>();
+  private static String toString(Object o) {
+    if (o == null) {
+      return null;
+    } else {
+      return o.toString();
+    }
+  }
+
+  private final Map<String, Object> variables = new LinkedHashMap<>();
+
+  public VariablesImpl() {
+  }
+
+  public VariablesImpl(JsonObject that) {
+    for (Map.Entry<String, Object> entry : that) {
+      String name = entry.getKey();
+      Object value = entry.getValue();
+      if (value instanceof JsonObject) {
+        JsonObject json = (JsonObject) value;
+        LinkedHashMap<String, String> map = new LinkedHashMap<>(json.size());
+        for (Map.Entry<String, Object> e : json) {
+          map.put(e.getKey(), toString(e.getValue()));
+        }
+        set(name, map);
+      } else if (value instanceof JsonArray) {
+        JsonArray json = (JsonArray) value;
+        List<String> list = new ArrayList<>(json.size());
+        for (Object o : json) {
+          list.add(toString(o));
+        }
+        set(name, list);
+      } else {
+        set(name, toString(value));
+      }
+    }
+  }
 
   @Override
   public Variables set(String key, String value) {

@@ -12,6 +12,8 @@ package io.vertx.ext.web.client.template;
 
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.VertxGen;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.impl.template.VariablesImpl;
 
 import java.util.List;
@@ -23,6 +25,10 @@ public interface Variables {
 
   static Variables variables() {
     return new VariablesImpl();
+  }
+
+  static Variables variables(JsonObject json) {
+    return new VariablesImpl(json);
   }
 
   @Fluent
