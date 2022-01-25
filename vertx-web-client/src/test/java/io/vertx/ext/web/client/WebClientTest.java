@@ -21,6 +21,7 @@ import io.vertx.ext.web.client.jackson.WineAndCheese;
 import io.vertx.ext.web.client.predicate.ErrorConverter;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.client.predicate.ResponsePredicateResult;
+import io.vertx.ext.web.client.template.UriTemplate;
 import io.vertx.ext.web.codec.BodyCodec;
 import io.vertx.ext.web.multipart.MultipartForm;
 import io.vertx.test.core.Repeat;
@@ -2042,5 +2043,19 @@ public class WebClientTest extends WebClientTestBase {
     HttpRequest<Buffer> req = webClient.get("/test/?c:d=e");
     req.send(onSuccess(resp -> testComplete()));
     await();
+  }
+
+  @Test
+  public void testUriTemplate() throws Exception {
+    UriTemplate template = UriTemplate.of("/test{?name}{&currency}");
+    testRequest(client ->
+        client.request(HttpMethod.GET, null, template)
+          .setTemplateParam("name", "Julien")
+          .setTemplateParam("currency", "\u20AC"),
+      req -> {
+        assertEquals("name=Julien&currency=%E2%82%AC", req.query());
+        assertEquals("Julien", req.params().get("name"));
+        assertEquals("\u20AC", req.params().get("currency"));
+      });
   }
 }

@@ -28,6 +28,7 @@ import io.vertx.ext.auth.authentication.UsernamePasswordCredentials;
 import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.ext.web.client.predicate.ResponsePredicateResult;
 import io.vertx.ext.web.client.template.UriTemplate;
+import io.vertx.ext.web.client.template.Variables;
 import io.vertx.ext.web.codec.BodyCodec;
 import io.vertx.ext.web.multipart.MultipartForm;
 
@@ -265,16 +266,6 @@ public interface HttpRequest<T> {
   HttpRequest<T> setQueryParam(String paramName, String paramValue);
 
   /**
-   * Add a request URI template parameter to the request, expanded when the request URI is a {@link UriTemplate}.
-   *
-   * @param paramName  the param name
-   * @param paramValue the param value
-   * @return a reference to this, so the API can be used fluently
-   */
-  @Fluent
-  HttpRequest<T> addTemplateParam(String paramName, String paramValue);
-
-  /**
    * Set a request URI template parameter to the request, expanded when the request URI is a {@link UriTemplate}.
    *
    * @param paramName  the param name
@@ -341,7 +332,7 @@ public interface HttpRequest<T> {
    *
    * @return the current request URI template parameters
    */
-  MultiMap templateParams();
+  Variables templateParams();
 
   /**
    * Copy this request
