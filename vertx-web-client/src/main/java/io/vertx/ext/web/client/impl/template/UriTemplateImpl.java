@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -34,8 +33,12 @@ import static io.vertx.ext.web.client.impl.template.UriTemplateImpl.Parser.isHEX
 public class UriTemplateImpl implements UriTemplate {
 
   private static final String HEX_ALPHABET = "0123456789ABCDEF";
-  private static final Predicate<Character> UNRESERVED_SET = Parser::isUnreserved;
-  private static final Predicate<Character> LITERALS_SET = ch -> Parser.isUnreserved(ch) || Parser.isReserved(ch);
+
+  interface CharSet {
+    CharSet UNRESERVED = Parser::isUnreserved;
+    CharSet LITERALS = ch -> Parser.isUnreserved(ch) || Parser.isReserved(ch);
+    boolean contains(char ch);
+  }
 
   public abstract static class Term {
 
@@ -43,12 +46,12 @@ public class UriTemplateImpl implements UriTemplate {
 
   public abstract static class SOperator {
 
-    private final Predicate<Character> allowedSet;
+    private final CharSet allowedSet;
     private final String prefix;
     private final String delimiter;
     final char[] chars;
 
-    SOperator(Predicate<Character> allowedSet, String prefix, String delimiter, char... chars) {
+    SOperator(CharSet allowedSet, String prefix, String delimiter, char... chars) {
       this.allowedSet = allowedSet;
       this.prefix = prefix;
       this.delimiter = delimiter;
@@ -79,7 +82,7 @@ public class UriTemplateImpl implements UriTemplate {
    */
   private static class Cat1 extends SOperator {
 
-    public Cat1(Predicate<Character> allowedSet, String prefix, String delimiter, char... chars) {
+    public Cat1(CharSet allowedSet, String prefix, String delimiter, char... chars) {
       super(allowedSet, prefix, delimiter, chars);
     }
 
@@ -94,7 +97,7 @@ public class UriTemplateImpl implements UriTemplate {
    */
   private static class Cat2 extends SOperator {
 
-    public Cat2(Predicate<Character> allowedSet, String prefix, String delimiter, char... chars) {
+    public Cat2(CharSet allowedSet, String prefix, String delimiter, char... chars) {
       super(allowedSet, prefix, delimiter, chars);
     }
 
@@ -106,7 +109,7 @@ public class UriTemplateImpl implements UriTemplate {
 
   private static class SimpleStringExpansion extends Cat1 {
     public SimpleStringExpansion() {
-      super(UNRESERVED_SET, "", ",");
+      super(CharSet.UNRESERVED, "", ",");
     }
   }
 
@@ -133,19 +136,19 @@ public class UriTemplateImpl implements UriTemplate {
 
   private static class LabelExpansionWithDotPrefix extends Cat1 {
     public LabelExpansionWithDotPrefix() {
-      super(UNRESERVED_SET, ".", ".", '.');
+      super(CharSet.UNRESERVED, ".", ".", '.');
     }
   }
 
   private static class PathSegmentExpansion extends Cat1 {
     public PathSegmentExpansion() {
-      super(UNRESERVED_SET, "/", "/", '/');
+      super(CharSet.UNRESERVED, "/", "/", '/');
     }
   }
 
   private static class PathStyleParameterExpansion extends Cat2 {
     public PathStyleParameterExpansion() {
-      super(UNRESERVED_SET , ";", ";", ';');
+      super(CharSet.UNRESERVED, ";", ";", ';');
     }
 
     @Override
@@ -159,19 +162,19 @@ public class UriTemplateImpl implements UriTemplate {
 
   private static class FormStyleQueryExpansion extends Cat2 {
     public FormStyleQueryExpansion() {
-      super(UNRESERVED_SET, "?", "&", '?');
+      super(CharSet.UNRESERVED, "?", "&", '?');
     }
   }
 
   private static class FormStyleQueryContinuation extends Cat2 {
     public FormStyleQueryContinuation() {
-      super(UNRESERVED_SET, "&", "&", '&');
+      super(CharSet.UNRESERVED, "&", "&", '&');
     }
   }
 
   private static class Future extends SOperator {
     public Future() {
-      super(UNRESERVED_SET, "", "", '=', ',', '!', '@', '|');
+      super(CharSet.UNRESERVED, "", "", '=', ',', '!', '@', '|');
     }
   }
 
@@ -465,7 +468,7 @@ public class UriTemplateImpl implements UriTemplate {
           || (0x61 <= ch && ch <= 0x7A)
           || ch == 0x7E) {
           pos++;
-          encodeChar(ch, LITERALS_SET, literals);
+          encodeChar(ch, CharSet.LITERALS, literals);
         } else {
           if (Character.isSurrogate(ch)) {
             if (pos + 1 >= s.length()) {
@@ -640,7 +643,7 @@ public class UriTemplateImpl implements UriTemplate {
     return sb.toString();
   }
 
-  private static void encodeString(String s, Predicate<Character> allowedSet, boolean allowPctEncoded, StringBuilder buff) {
+  private static void encodeString(String s, CharSet allowedSet, boolean allowPctEncoded, StringBuilder buff) {
     int i = 0;
     while (i < s.length()) {
       char ch = s.charAt(i++);
@@ -656,8 +659,8 @@ public class UriTemplateImpl implements UriTemplate {
     }
   }
 
-  private static void encodeChar(char ch, Predicate<Character> allowedSet, StringBuilder buff) {
-    if (allowedSet.test(ch)) {
+  private static void encodeChar(char ch, CharSet allowedSet, StringBuilder buff) {
+    if (allowedSet.contains(ch)) {
       buff.append(ch);
     } else {
       byte[] bytes = Character.toString(ch).getBytes(StandardCharsets.UTF_8);
