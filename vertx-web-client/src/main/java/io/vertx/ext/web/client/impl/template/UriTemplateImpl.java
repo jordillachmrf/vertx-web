@@ -665,11 +665,7 @@ public class UriTemplateImpl implements UriTemplate {
     } else {
       byte[] bytes = Character.toString(ch).getBytes(StandardCharsets.UTF_8);
       for (byte b : bytes) {
-        int high = (b & 0xF0) >> 4;
-        int low = b & 0x0F;
-        buff.append('%');
-        buff.append(HEX_ALPHABET, high, high + 1);
-        buff.append(HEX_ALPHABET, low, low + 1);
+        pctEncode(b, buff);
       }
     }
   }
@@ -677,11 +673,15 @@ public class UriTemplateImpl implements UriTemplate {
   private static void pctEncode(String s, StringBuilder buff) {
     byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
     for (byte b : bytes) {
-      int high = (b & 0xF0) >> 4;
-      int low = b & 0x0F;
-      buff.append('%');
-      buff.append(HEX_ALPHABET, high, high + 1);
-      buff.append(HEX_ALPHABET, low, low + 1);
+      pctEncode(b, buff);
     }
+  }
+
+  private static void pctEncode(byte b, StringBuilder buff) {
+    int high = (b & 0xF0) >> 4;
+    int low = b & 0x0F;
+    buff.append('%');
+    buff.append(HEX_ALPHABET, high, high + 1);
+    buff.append(HEX_ALPHABET, low, low + 1);
   }
 }
