@@ -18,6 +18,7 @@ import io.vertx.ext.web.client.template.Variables;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -648,8 +649,7 @@ public class UriTemplateImpl implements UriTemplate {
     while (i < s.length()) {
       char ch = s.charAt(i++);
       if (Character.isSurrogate(ch)) {
-        pctEncode(s.substring(i - 1, i + 1), buff);
-        i++;
+        PCT_ENCODER.get().encodeChars(ch, s.charAt(i++), buff);
       } else if (allowPctEncoded && ch == '%' && i + 1 < s.length() && isHEXDIG(s.charAt(i)) && isHEXDIG(s.charAt(i + 1))) {
         buff.append(s, i - 1, i + 2);
         i+= 2;
@@ -663,13 +663,57 @@ public class UriTemplateImpl implements UriTemplate {
     if (allowedSet.contains(ch)) {
       buff.append(ch);
     } else {
-      byte[] bytes = Character.toString(ch).getBytes(StandardCharsets.UTF_8);
-      for (byte b : bytes) {
-        pctEncode(b, buff);
+      PCT_ENCODER.get().encodeChar(ch, buff);
+    }
+  }
+
+  private static final ThreadLocal<PctEncoder> PCT_ENCODER = ThreadLocal.withInitial(PctEncoder::new);
+
+  private static class PctEncoder {
+
+    private final CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
+    private final ByteBuffer byteBuffer = ByteBuffer.allocate(6);
+    private final CharBuffer charBuffer = CharBuffer.allocate(2);
+
+    void encodeChar(char ch, StringBuilder buff) {
+      try {
+        charBuffer.put(ch);
+        charBuffer.flip();
+        encode(buff);
+      } finally {
+        encoder.reset();
+        byteBuffer.clear();
+        charBuffer.clear();
+      }
+    }
+
+    void encodeChars(char ch1, char ch2, StringBuilder buff) {
+      try {
+        charBuffer.put(ch1);
+        charBuffer.put(ch2);
+        charBuffer.flip();
+        encode(buff);
+      } finally {
+        encoder.reset();
+        byteBuffer.clear();
+        charBuffer.clear();
+      }
+    }
+
+    private void encode(StringBuilder buff) {
+      CoderResult res = encoder.encode(charBuffer, byteBuffer, true);
+      if (res.isUnderflow()) {
+        int pos = byteBuffer.position();
+        byteBuffer.flip();
+        for (int i = 0;i < pos;i++) {
+          byte b = byteBuffer.get(i);
+          pctEncode(b, buff);
+        }
       }
     }
   }
 
+  // This does need to be fast, since it's used when building a template
   private static void pctEncode(String s, StringBuilder buff) {
     byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
     for (byte b : bytes) {
