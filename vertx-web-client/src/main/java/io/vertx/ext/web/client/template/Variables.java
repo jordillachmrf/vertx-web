@@ -12,7 +12,6 @@ package io.vertx.ext.web.client.template;
 
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.VertxGen;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.impl.template.VariablesImpl;
 
@@ -20,34 +19,89 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Holds a set of key/value pairs where each value can be a {@code String} or a {@code List<String>} or a {@code Map<String, String>}.
+ */
 @VertxGen
 public interface Variables {
 
+  /**
+   * @return an empty instance
+   */
   static Variables variables() {
     return new VariablesImpl();
   }
 
+  /**
+   * Create an instance populated from a JSON object:
+   *
+   * <ul>
+   *   <li>{@code null} are conserved</li>
+   *   <li>{@code JsonArray} is converted to {@code List<String>}</li>
+   *   <li>{@code JsonObject} is converted to {@code Map<String, String>}</li>
+   *   <li>any other value is converted to a string</li>
+   * </ul>
+   *
+   * Note that nested JSON elements are converted to a string, so { "user": { "first_name": "John", "last_name": "Doe", "address" : { "city": "Paris", etc... } } }
+   * flattens the JSON "address" to the string "{\"city\":\"Paris\",etc...}".
+   *
+   * @param json the json that populates the returned variables
+   * @return an instance populated from a JSON object
+   */
   static Variables variables(JsonObject json) {
     return new VariablesImpl(json);
   }
 
+  /**
+   * Set a single variable.
+   * @param name the variable name
+   * @param value the variable value
+   * @return a reference to this, so the API can be used fluently
+   */
   @Fluent
-  Variables set(String key, String value);
+  Variables set(String name, String value);
 
+  /**
+   * Set a list variable.
+   * @param name the variable name
+   * @param value the variable value
+   * @return a reference to this, so the API can be used fluently
+   */
   @Fluent
-  Variables set(String key, List<String> values);
+  Variables set(String name, List<String> value);
 
+  /**
+   * Set a map variable.
+   * @param name the variable name
+   * @param value the variable value
+   * @return a reference to this, so the API can be used fluently
+   */
   @Fluent
-  Variables set(String key, Map<String, String> entries);
+  Variables set(String name, Map<String, String> value);
 
-  Set<String> keys();
+  /**
+   * @return the set of variable names
+   */
+  Set<String> names();
 
-  Object get(String key);
+  /**
+   * @return the value of the variable {@code name}
+   */
+  Object get(String name);
 
-  String getValue(String key);
+  /**
+   * @return the single value of the variable {@code name}
+   */
+  String getSingle(String name);
 
-  List<String> getValues(String key);
+  /**
+   * @return the list value of the variable {@code name}
+   */
+  List<String> getList(String name);
 
-  Map<String, String> getEntries(String key);
+  /**
+   * @return the map value of the variable {@code name}
+   */
+  Map<String, String> getMap(String name);
 
 }

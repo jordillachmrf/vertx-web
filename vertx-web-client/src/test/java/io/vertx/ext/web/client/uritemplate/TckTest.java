@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.fail;
@@ -69,7 +68,7 @@ public class TckTest {
         } else if (expected == Boolean.FALSE) {
           // Failure
           try {
-            UriTemplate.of(template).expand(variables);
+            UriTemplate.of(template).expandToString(variables);
             fail("Was expecting " + template + " compilation or evaluation to fail");
           } catch (Exception ignore) {
           }
@@ -79,7 +78,7 @@ public class TckTest {
         }
         String result;
         try {
-          result = UriTemplate.of(template).expand(variables);
+          result = UriTemplate.of(template).expandToString(variables);
         } catch (Exception e) {
           throw new AssertionError("Failed to evaluate " + template + " with variables " + group.getJsonObject("variables") + " to evaluate to " + expected, e);
         }

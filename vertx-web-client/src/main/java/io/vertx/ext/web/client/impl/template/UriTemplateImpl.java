@@ -631,16 +631,16 @@ public class UriTemplateImpl implements UriTemplate {
   private final List<Term> terms = new ArrayList<>();
 
   @Override
-  public String expand(Variables variables) {
+  public String expandToString(Variables variables) {
     StringBuilder sb = new StringBuilder();
-    terms.forEach(term -> {
+    for (Term term : terms) {
       if (term instanceof Literals) {
         sb.append(((Literals)term).value);
       } else {
         Expression expression = (Expression) term;
         expression.operator.expand(expression.value, variables, sb);
       }
-    });
+    }
     return sb.toString();
   }
 

@@ -22,7 +22,7 @@ public class VariablesTest {
     json.put("list", new JsonArray().add("foo").add(1).add(true));
     json.put("map", new JsonObject().put("map_string", "bar"));
     Variables var = Variables.variables(json);
-    assertEquals(new HashSet<>(Arrays.asList("string", "int", "boolean", "list", "map")), var.keys());
+    assertEquals(new HashSet<>(Arrays.asList("string", "int", "boolean", "list", "map")), var.names());
     assertEquals("the_string", var.get("string"));
     assertEquals("4", var.get("int"));
     assertEquals("false", var.get("boolean"));

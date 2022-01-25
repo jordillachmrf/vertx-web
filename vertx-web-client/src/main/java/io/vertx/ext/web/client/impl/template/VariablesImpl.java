@@ -15,7 +15,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.template.Variables;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,48 +60,45 @@ public class VariablesImpl implements Variables {
   }
 
   @Override
-  public Variables set(String key, String value) {
-    variables.put(key, value);
+  public Variables set(String name, String value) {
+    variables.put(name, value);
     return this;
   }
 
   @Override
-  public Variables set(String key, List<String> values) {
-    variables.put(key, values);
+  public Variables set(String name, List<String> value) {
+    variables.put(name, value);
     return this;
   }
 
   @Override
-  public Variables set(String key, Map<String, String> entries) {
-    variables.put(key, entries);
+  public Variables set(String name, Map<String, String> value) {
+    variables.put(name, value);
     return this;
   }
 
   @Override
-  public Object get(String key) {
-    return variables.get(key);
+  public Object get(String name) {
+    return variables.get(name);
   }
 
   @Override
-  public Set<String> keys() {
+  public Set<String> names() {
     return variables.keySet();
   }
 
   @Override
-  public String getValue(String key) {
-    Object o = variables.get(key);
-    return o instanceof String ? (String) o : null;
+  public String getSingle(String name) {
+    return (String) variables.get(name);
   }
 
   @Override
-  public List<String> getValues(String key) {
-    Object o = variables.get(key);
-    return o instanceof List ? (List<String>) o : null;
+  public List<String> getList(String name) {
+    return (List<String>) variables.get(name);
   }
 
   @Override
-  public Map<String, String> getEntries(String key) {
-    Object o = variables.get(key);
-    return o instanceof Map ? (Map<String, String>) o : null;
+  public Map<String, String> getMap(String name) {
+    return (Map<String, String>) variables.get(name);
   }
 }

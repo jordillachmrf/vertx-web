@@ -11,19 +11,33 @@
 package io.vertx.ext.web.client.template;
 
 import io.vertx.codegen.annotations.VertxGen;
-import io.vertx.core.MultiMap;
 import io.vertx.ext.web.client.impl.template.UriTemplateImpl;
 
 /**
+ * A URI template that follows the <a href="https://datatracker.ietf.org/doc/html/rfc6570">rfc6570</a> level 4.
+ *
+ * <p> A template is thread safe and can be shared between threads after its creation.
+ *
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 @VertxGen
 public interface UriTemplate {
 
+  /**
+   * Create a template from a string {@code uri}
+   * @param uri the template string
+   * @return the template
+   */
   static UriTemplate of(String uri) {
     return new UriTemplateImpl.Parser().parseURITemplate(uri);
   }
 
-  String expand(Variables variables);
+  /**
+   * Expand the template to a string.
+   *
+   * @param variables the variables
+   * @return the string expansion of this template with the {@code variables}
+   */
+  String expandToString(Variables variables);
 
 }

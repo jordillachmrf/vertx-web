@@ -183,7 +183,7 @@ public class HttpRequestImpl<T> implements HttpRequest<T> {
       templateParams.forEach(entry -> {
         variables.set(entry.getKey(), entry.getValue());
       });
-      return ((UriTemplate)uri).expand(variables);
+      return ((UriTemplate)uri).expandToString(variables);
     } else {
       String uri = (String) this.uri;
       if (queryParams != null && queryParams.size() > 0) {
